@@ -10,19 +10,23 @@ services:
     env_file:
       - global.env
     volumes:
-      - ./scripts:/scripts
       - ./dbdata:/var/lib/postgresql/data
 
   web:
-    build: ./webServer
-    container_name: webServer
+    build: .
+    container_name: flaskServer
     env_file:
       - global.env
       - web.env
     ports:
+      # standard
       - 80:80/tcp
-      - 8080:8080/tcp
+      # dev
+      - 5000:5000/tcp
+    volumes:
+      # mount app as read-only
+      - .:/app/:ro
 
 volumes:
-  scripts:
   dbdata:
+  .:
