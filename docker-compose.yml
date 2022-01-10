@@ -1,0 +1,28 @@
+# Use postgres/example user/password credentials
+version: '3.1'
+
+services:
+
+  db:
+    image: postgres
+    container_name: db
+    restart: always
+    env_file:
+      - global.env
+    volumes:
+      - ./scripts:/scripts
+      - ./dbdata:/var/lib/postgresql/data
+
+  web:
+    build: ./webServer
+    container_name: webServer
+    env_file:
+      - global.env
+      - web.env
+    ports:
+      - 80:80/tcp
+      - 8080:8080/tcp
+
+volumes:
+  scripts:
+  dbdata:
