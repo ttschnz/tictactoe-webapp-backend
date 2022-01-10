@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" >
+        <title>{% block title %}{% endblock %} - TicTacToe</title>
+        <link href="{{url_for('static', filename='styles.css')}}" rel="stylesheet">
+    </head>
+    <body>
+        <main>
+            {% block main %}{% endblock %}
+        </main>
+    </body>
+</html>

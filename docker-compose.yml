@@ -15,6 +15,7 @@ services:
   web:
     build: .
     container_name: flaskServer
+    restart: always
     env_file:
       - global.env
       - web.env
