@@ -2,7 +2,7 @@
 from flask import Flask, render_template, request
 # SQLAlchemy to access the database
 from flask_sqlalchemy import SQLAlchemy
-# we will use os to access envorinment variables stored in the *.env files
+# we will use os to access enviornment variables stored in the *.env files
 import os
 
 
