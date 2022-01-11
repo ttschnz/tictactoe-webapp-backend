@@ -14,8 +14,10 @@ services:
     volumes:
       - ./dbInit:/docker-entrypoint-initdb.d/
       - ./dbdata:/var/lib/postgresql/data
+      - ./pg_hba.conf:/conf/pg_hba.conf
+    command: postgres -c hba_file=/conf/pg_hba.conf
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5432"]
+      test: pg_isready -U postgres
       interval: 5s
       timeout: 5s
       retries: 20
@@ -33,10 +35,11 @@ services:
       # mount app as read-only
       - ./code:/code:ro
     depends_on:
-      db:
-        condition: service_healthy
+      - db
+        # condition: service_healthy
 
 volumes:
-  dbdata:
   dbInit:
+  dbdata:
   code:
+  pg_hba.conf:

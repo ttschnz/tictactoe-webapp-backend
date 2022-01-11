@@ -9,7 +9,7 @@ import os
 # initialize flask application with template_folder pointed to public_html (relative to this file)
 app=Flask(__name__)
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = True
-app.config["SQLALCHEMY_DATABASE_URI"] =  f"postgresql://{os.environ['POSTGRES_USER']}:{os.environ['POSTGRES_PASSWORD']}@db/example"
+app.config["SQLALCHEMY_DATABASE_URI"] =  f"postgresql://{os.environ['POSTGRES_USER']}:{os.environ['POSTGRES_PASSWORD']}@db/tictactoe"
 db = SQLAlchemy(app)
 
 class Data(db.Model):
@@ -35,10 +35,6 @@ def apiTest():
     return jsonify(request.form)
 
 # only debug if not as module
-if __name__ == "__main__":
-    # initialize db
-    from init import init
-    init()
-    
+if __name__ == "__main__":    
     app.debug = True
     app.run(host="0.0.0.0", port=os.environ["HTTP_PORT"])
