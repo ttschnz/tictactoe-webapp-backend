@@ -3,7 +3,7 @@ from flask import Flask, render_template, request
 # SQLAlchemy to access the database
 from flask_sqlalchemy import SQLAlchemy
 # we will use os to access enviornment variables stored in the *.env files
-import os, time
+import os, time, json
 
 
 # initialize flask application with template_folder pointed to public_html (relative to this file)
@@ -47,14 +47,19 @@ def index():
     return render_template("index.html")
 
 @app.route("/signup", methods=["POST"])
-def success():
+def signupSubmission():
+    response = {}
     try:
         db.session.add(User(request.form["username"], request.form["email"], request.form["passwordhash"]))
         db.session.commit()
-        return render_template("success.html")
+        response["success"] = True
     except:
-        return render_template("error.html")
+        response["success"] = False
+    return json.dumps(response)
 
+@app.route("/signup", methods=["GET"])
+def signup():
+    return render_template("signup.html")
 
 @app.route("/api/test", methods=["GET", "POST"])
 def apiTest():
@@ -76,6 +81,6 @@ if __name__ == "__main__":
     while not serverUp():
         print("server unreachable, waiting 5s")
         time.sleep(5)
-        
+
     print("server reached and initialized, starting web-service")
     app.run(host="0.0.0.0", port=os.environ["HTTP_PORT"])
