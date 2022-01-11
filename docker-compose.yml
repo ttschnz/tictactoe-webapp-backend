@@ -7,27 +7,36 @@ services:
     image: postgres
     container_name: db
     restart: always
+    ports:
+      - 5432:5432/tcp
     env_file:
       - global.env
     volumes:
+      - ./dbInit:/docker-entrypoint-initdb.d/
       - ./dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5432"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
   web:
     build: .
     container_name: flaskServer
-    restart: always
+    # restart: always
     env_file:
       - global.env
       - web.env
     ports:
-      # standard
       - 80:80/tcp
-      # dev
-      - 5000:5000/tcp
     volumes:
       # mount app as read-only
-      - .:/app/:ro
+      - ./code:/code:ro
+    depends_on:
+      db:
+        condition: service_healthy
 
 volumes:
   dbdata:
-  .:
+  dbInit:
+  code:
