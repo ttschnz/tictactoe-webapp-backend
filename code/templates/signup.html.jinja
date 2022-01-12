@@ -1,0 +1,18 @@
+{% extends 'base.html.jinja' %}
+{% block title %}
+Sign Up
+{% endblock %}
+{% block main %}
+<div class="tile rows">
+    <form id="signupForm">
+        <h1>Sign up</h1>
+        {{ forms.labeledInput("username", label="Username") }}
+        {{ forms.labeledInput("email", label="E-Mail", type="email") }}
+        {{ forms.labeledInput("password", label="Password", type="password", autocomplete="new-password") }}
+        {{ forms.button(label="Sign Up", class="primaryAction") }}
+    </form>
+    <span id="feedBackElement"></span>
+    {{ forms.labelledHr(label="or")}}
+    {{ forms.button(label="Log in", action="goto('/login')") }}
+</div>
+{% endblock %}

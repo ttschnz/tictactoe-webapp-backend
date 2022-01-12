@@ -7,8 +7,9 @@ services:
     image: postgres
     container_name: db
     restart: always
+    # uncomment for debugging
     ports:
-      - 5432:5432/tcp
+      - 5432:5432/tcp 
     env_file:
       - global.env
     volumes:
@@ -25,7 +26,7 @@ services:
   web:
     build: .
     container_name: flaskServer
-    restart: alwayss
+    restart: always
     env_file:
       - global.env
       - web.env

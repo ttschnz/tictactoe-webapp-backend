@@ -1,0 +1,14 @@
+{% macro labeledInput(name, label='', value='', type='text', autocomplete='') -%}
+    <div class="labeled input">
+        <input type={{ type }} placeholder="{{ label }}" value="{{ value }}" name={{ name }} autocomplete={{ autocomplete }}>
+        <label for={{ name }}>{{ label }}</label>
+    </div>
+{%- endmacro %}
+
+{% macro button(label='', action='', class='') -%}
+    <button class="button {{class}}" onclick={{action}}>{{label}}</button>
+{%- endmacro %}
+
+{% macro labelledHr(label='') -%}
+    <hr data-label={{label}} class="labelledHr">
+{%- endmacro %}

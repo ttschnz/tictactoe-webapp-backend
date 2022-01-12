@@ -1,26 +1,30 @@
-body {
-    margin:0;
-    display:flex;
-    min-height:100vh;
-    align-items: stretch;
+:root {
+    --color200: #00000010;
+    --color500: #0000002b;
+    --color700: #0000005c;
+    --lightColor100: #f9f8f8ff;
+    --accentHue: 193deg;
 }
-*{
+
+body {
+    margin: 0;
+    display: grid;
+    min-height: 100vh;
+    align-items: stretch;
+    grid-template-rows: 50px 1fr;
+    background-color: var(--lightColor100);
+}
+
+header {
+    background: var(--color200);
+}
+
+* {
     box-sizing: border-box;
-    font-family:sans-serif;
+    font-family: sans-serif;
 }
 
 main {
-    width: 100%;
-    display: flex;
-}
-
-.tile > *{
-    padding:10px 20px 70px 20px;
-    border:1px solid black;
-    border-radius:5px;
-}
-
-.centered {
     width: 100%;
     height: 100%;
     display: flex;
@@ -28,36 +32,121 @@ main {
     justify-content: center;
 }
 
-.labeled.input{
-    display:flex;
+header {
+    padding: 20px;
+    box-shadow: 0px 3px 3px 0 var(--color700);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.tile {
+    padding: 20px;
+    box-shadow: 2px 2px 6px 0px var(--color500);
+    border-radius: 5px;
+    background: white;
+    min-width: 400px;
+    min-height: 500px;
+}
+
+.labeled.input {
+    position: relative;
+    display: flex;
     flex-direction: column;
-    margin-bottom: 10px;
-    position:relative;
+}
+
+.rows {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
 form {
     min-width: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
 }
 
-input{
-    background:transparent;
-    border: 1px solid black;
+input {
+    background: transparent;
+    border: 1px solid var(--color500);
     padding: 10px 7px;
-    border-radius:3px;
-}
-input::placeholder{
-    color:transparent;
+    border-radius: 3px;
 }
 
-input ~ label{
-    position:absolute;
-    top:10px;
-    left:7px;
-    transition:transform .33s;
-    transform:translate(-7px, calc(-1em - 10px - 5px)) scale(1);
-    transform-origin:left;
+input::placeholder {
+    color: transparent;
 }
 
-input:placeholder-shown ~ label{
-    transform:translateY(0px) scale(.9);
+input~label {
+    position: absolute;
+    top: 10px;
+    left: 7px;
+    transition: transform .33s;
+    transform: translate(-7px, calc(-1em - 10px - 5px)) scale(.7);
+    transform-origin: left;
+}
+
+input:placeholder-shown~label {
+    transform: translateY(0px) scale(.8);
+}
+
+button {
+    --hue: var(--accentHue);
+    background-color: hsl(var(--hue) 40% 80%);
+    cursor: pointer;
+    padding: 5px 10px;
+    transition: background 0.33s, color 0.33s;
+    border-radius: 5px;
+    border-color: transparent;
+}
+
+button.primaryAction {
+    --hue: var(--accentHue);
+    background-color: hsl(var(--hue) 80% 37%);
+    color: hsl(var(--accentHue) 80% 100%);
+}
+
+button:hover,
+button:focus {
+    background-color: hsl(var(--hue) 60% 25%);
+    color: hsl(var(--accentHue) 80% 100%);
+}
+
+hr {
+    width: 100%;
+}
+
+hr.labelledHr::after {
+    content: attr(data-label);
+    position: relative;
+    padding: 0 .5em;
+    background-color: white;
+}
+
+hr.labelledHr::before {
+    content: '';
+    background: lightgray;
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 100%;
+    height: 1px;
+}
+
+hr.labelledHr {
+    position: relative;
+    border: 0;
+    text-align: center;
+}
+
+.tictactoeLogo>svg {
+    height: 40px;
+    width: auto;
+}
+
+#feedBackElement {
+    color: #a52828;
+    font-size: .8em;
 }

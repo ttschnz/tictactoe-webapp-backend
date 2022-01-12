@@ -1,0 +1,22 @@
+{% extends 'base.html.jinja' %}
+{% block title %}
+Sign In
+{% endblock %}
+{% block main %}
+<div class="tile rows">
+    {% if not username %}
+        <form id="signinForm">
+            <h1>Log in</h1>
+            {{ forms.labeledInput("username", label="Username") }}
+            {{ forms.labeledInput("password", label="Password", type="password", autocomplete="current-password") }}
+            {{ forms.button(label="Log in", class="primaryAction") }}
+        </form>
+        <span id="feedBackElement"></span>
+        {{ forms.labelledHr(label="or")}}
+        {{ forms.button(label="Sign up", action="goto('/signup')") }}
+    {% else %}
+        <p>You are allready signed in.</p>
+        {{ forms.button(label="Home", action="goto('/')") }}
+    {% endif %}
+</div>
+{% endblock %}

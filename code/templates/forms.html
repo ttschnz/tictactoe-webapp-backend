@@ -1,6 +1,0 @@
-{% macro labeledInput(name, label='', value='', type='text') -%}
-    <div class="labeled input">
-        <input type="{{ type }}" placeholder="{{ label }}" value="{{ value|e }}" name="{{ name }}">
-        <label for="{{ name }}">{{ label }}</label>
-    </div>
-{%- endmacro %}

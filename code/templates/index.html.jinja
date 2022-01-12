@@ -1,0 +1,8 @@
+{% extends 'base.html.jinja' %}
+{% block title %}Home{% endblock %}
+{% block main %}
+<div class="tile rows">
+    {{forms.button(label="new Game", action="javascript:startNewGame()")}}
+    {{forms.button(label="view Stats", action="javascript:showStatistics()")}}
+</div>
+{% endblock %}
