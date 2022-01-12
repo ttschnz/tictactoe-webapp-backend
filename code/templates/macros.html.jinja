@@ -1,5 +1,5 @@
-{% macro logo() -%}
-<div class="tictactoeLogo">
+{% macro logo(asLink=false) -%}
+<div class="tictactoeLogo" {% if asLink %}onclick="goto('/')"{% endif %}>
     <svg width="100mm" height="100mm" version="1.1" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"> 
         <g transform="matrix(1.0969 0 0 1.6998 -44.844 -174.91)" fill="none" stroke-width="2px" stroke="#000">
             <path d="m65.481 102.9-1.0691 58.532"/>

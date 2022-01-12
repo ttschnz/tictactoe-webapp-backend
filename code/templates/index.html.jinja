@@ -2,7 +2,23 @@
 {% block title %}Home{% endblock %}
 {% block main %}
 <div class="tile rows">
-    {{forms.button(label="new Game", action="javascript:startNewGame()")}}
-    {{forms.button(label="view Stats", action="javascript:showStatistics()")}}
+    <div class="titleRow">
+        {{macros.logo()}}
+        <h1>TicTacToe</h1>
+    </div>
+    {% if username %}      
+        {{forms.labelledHr(label="your account")}}
+        {{forms.button(label="New game", action="javascript:startNewGame()", class="primaryAction")}}
+        {{forms.button(label="View stats", action="javascript:showStatistics()")}}
+        {{forms.button(label="Log out", action="javascript:logout()")}}
+        {{forms.labelledHr(label="general")}}
+        {{forms.button(label="Browse games", action="javascript:browseGames()")}}
+    {% else %}
+        {{forms.button(label="Play as guest", action="javascript:playAsGuest()", class="primaryAction")}}
+        {{forms.button(label="Browse games", action="javascript:browseGames()")}}
+        {{forms.labelledHr(label="or")}}
+        {{forms.button(label="Create account", action="goto('/signup')")}}
+        {{forms.button(label="Log in", action="goto('/login')")}}
+    {% endif %}
 </div>
 {% endblock %}

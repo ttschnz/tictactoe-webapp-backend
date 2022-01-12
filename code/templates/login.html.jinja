@@ -1,6 +1,6 @@
 {% extends 'base.html.jinja' %}
 {% block title %}
-Sign In
+Log In
 {% endblock %}
 {% block main %}
 <div class="tile rows">
@@ -13,7 +13,10 @@ Sign In
         </form>
         <span id="feedBackElement"></span>
         {{ forms.labelledHr(label="or")}}
-        {{ forms.button(label="Sign up", action="goto('/signup')") }}
+        {{ forms.button(label="Sign Up", action="goto('/signup')") }}
+        <span class="bottom left">
+            <a href="/">&xlarr; home</a>
+        </span>
     {% else %}
         <p>You are allready signed in.</p>
         {{ forms.button(label="Home", action="goto('/')") }}

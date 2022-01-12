@@ -5,7 +5,10 @@
     <head>
         <meta charset="utf-8" >
         <title>{% block title %}{% endblock %} - TicTacToe</title>
-        <link href="{{url_for('static', filename='styles.css')}}" rel="stylesheet">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;700&family=Poppins:ital,wght@0,400;0,700;1,500&display=swap" rel="stylesheet">
+        <link href="{{url_for('static', filename='styles.css')}}" rel="stylesheet"><link rel="preconnect" href="https://fonts.googleapis.com">
         <script src="https://cdn.jsdelivr.net/npm/node-forge@1.0.0/dist/forge.min.js" integrity="sha384-kCnNHsI8E0Dde+7EKTwuDBCdtanGM4kajy5i02M0FFyawUCS8bGADvvmwgrGOF9P" crossorigin="anonymous"></script>
         <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha384-vtXRMe3mGCbOeY7l30aIg8H9p3GdeSe4IFlP6G8JMa7o7lXvnz3GFKzPxzJdPfGK" crossorigin="anonymous"></script>
         <script src="{{url_for('static', filename='script.js')}}"></script>
@@ -13,7 +16,7 @@
     <body>
         <header>
             {% if not request.path == "/" %}
-                <a href="/">{{macros.logo()}}</a>
+                {{macros.logo(asLink = true)}}
             {% else %}
                 <span>{{macros.logo()}}</span>
             {% endif %}

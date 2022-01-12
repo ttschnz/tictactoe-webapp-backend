@@ -22,6 +22,11 @@ header {
 * {
     box-sizing: border-box;
     font-family: sans-serif;
+    font-family: 'Noto Sans', sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6{
+    font-family: 'Poppins', sans-serif;
 }
 
 main {
@@ -42,6 +47,7 @@ header {
 
 .tile {
     padding: 20px;
+    padding-bottom: 60px;
     box-shadow: 2px 2px 6px 0px var(--color500);
     border-radius: 5px;
     background: white;
@@ -59,6 +65,7 @@ header {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    position: relative;
 }
 
 form {
@@ -149,4 +156,35 @@ hr.labelledHr {
 #feedBackElement {
     color: #a52828;
     font-size: .8em;
+}
+
+.titleRow {
+    display: flex;
+    grid-gap: 20px;
+    padding-right: 30px;
+    align-items: center;
+    justify-content: center;
+}
+
+.bottom {
+    position: absolute;
+    bottom: 20px;
+}
+.left{
+    position: absolute;
+    left: 20px;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-bottom .33s;
+}
+
+a:hover, a:focus{
+    border-bottom: 1px solid black;
+}
+*[onclick]{
+    cursor: pointer;
 }
