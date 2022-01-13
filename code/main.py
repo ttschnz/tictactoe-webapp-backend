@@ -1,15 +1,17 @@
 # flask for serving files
-from flask import Flask, render_template as rt_, request
+from flask import Flask, render_template as rt_, request, jsonify
 # SQLAlchemy to access the database
 from flask_sqlalchemy import SQLAlchemy
 # we will use os to access enviornment variables stored in the *.env files, time for delays and json for ajax-responses
-import os, time, json
+import os, time, json, random
 import secrets
+from datetime import datetime 
 
 # initialize flask application with template_folder pointed to public_html (relative to this file)
 app=Flask(__name__)
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = True
 app.config["SQLALCHEMY_DATABASE_URI"] =  f"postgresql://{os.environ['POSTGRES_USER']}:{os.environ['POSTGRES_PASSWORD']}@db/tictactoe"
+app.config['SQLALCHEMY_ECHO'] = True
 db = SQLAlchemy(app)
 
 # proxy for default render template, passes the filename to the actual render_template fn and wether the user is signed in or not
@@ -19,7 +21,9 @@ def render_template(fileName, request):
 
 # checks if token is valid and returns username if so. if not, it returns False
 def checkToken(token) -> str|bool:
-    matchingEntries = db.session.query(Session).filter(Session.sessionKey==token and Session.sessionStart > time.time()+os.environ["SESSION_TIMEOUT"]).all()
+    app.logger.debug("-----------------------")
+    app.logger.debug(db.session.query(Session).all()[0].sessionStart)
+    matchingEntries = db.session.query(Session).filter(Session.sessionKey==token).filter(Session.sessionStart > datetime.utcfromtimestamp(round(time.time()) + int(os.environ["SESSION_TIMEOUT"]))).all()
     return matchingEntries[0].username if len(matchingEntries) == 1 else False
 
 # generates a token for a user, inserts it to the db and returns the token. False if failed
@@ -55,23 +59,49 @@ class User(db.Model):
 # table to store games and their players to
 class Game(db.Model):
     __tablename__ = "games"
-    gameid = db.Column(db.Integer(), primary_key=True, autoincrement="auto")
-    attacker = db.Column(db.String(16), db.ForeignKey("users.username"), nullable=False)
-    defender = db.Column(db.String(16), db.ForeignKey("users.username"), nullable=False)
-    def __init__(self, attacker, defender):
-        self.attacker = attacker
-        self.defender = defender
+    gameId = db.Column(db.Integer(), primary_key=True, autoincrement="auto", name="gameid")
+    player = db.Column(db.String(16), db.ForeignKey("users.username"))
+    gameKey = db.Column(db.String(32))
+    def __init__(self, player):
+        app.logger.info("game player username", player)
+        self.player = player if player else None
+        # only set key if not with an account
+        self.gameKey = hex(random.randrange(16**32))[2:] if not player else None
+
+    def idToHexString(self, length=6):
+        return ("0" * length + hex(self.gameId)[2:])[-6:]
 
 # table to store moves to
 class Move(db.Model):
     __tablename__ = "moves"
-    gameid = db.Column(db.Integer(), db.ForeignKey("games.gameid"), nullable=False, primary_key=True)
+    gameId = db.Column(db.Integer(), db.ForeignKey("games.gameid"), nullable=False, primary_key=True, name="gameid")
     moveIndex = db.Column(db.Integer(), nullable=False, primary_key=True, name="moveindex")
     movePosition = db.Column(db.Integer(), nullable=False, name="moveposition")
-    def __init__(self, gameid, moveIndex, movePosition):
-        self.gameid = gameid
-        self.moveIndex = moveIndex
+    def __init__(self, gameId, movePosition):
+        self.gameId = gameId
+        self.moveIndex = self.getMoveIndex()
+        app.logger.info(self.moveIndex)
         self.movePosition = movePosition
+        self.checkValidity()
+
+    def getMoveIndex(self):
+        index = -1
+        moves = db.session.query(Move).filter(Move.gameId == self.gameId).order_by(Move.moveIndex.desc()).all()
+        index = 0 if len(moves) == 0 else moves[0].moveIndex + 1
+
+        if not index < 9:
+            raise ValueError("")
+        return index
+    
+    def checkValidity(self):
+        # check if there is no other entry with same pos and gameid
+        app.logger.info("-----------checking validity-----------")
+        sameMoves = db.session.query(Move).filter(Move.gameId == self.gameId).filter(Move.movePosition == self.movePosition).all()
+        db.session
+        app.logger.info(sameMoves)
+        if not len(sameMoves) == 0:
+            raise ValueError("field is allready occupied by another move:", (self.gameId,sameMoves[0].gameId), (self.moveIndex, sameMoves[0].moveIndex),(self.movePosition,sameMoves[0].movePosition))
+        return True
 
 # table to store sessionKeys to (=tokens). Tokens allow faster and more secure authentication
 class Session(db.Model):
@@ -118,7 +148,7 @@ def loginSubmission():
             if token:
                 response["data"] = {}
                 response["data"]["token"] = token
-                response["data"]["token_expires"] = os.environ["SESSION_TIMEOUT"]
+                response["data"]["token_expires"] = os.environ["SESSION_TIMEOUT"] + round(time.time())
             else:
                 response["success"] = False
     except:
@@ -128,6 +158,69 @@ def loginSubmission():
 @app.route("/login", methods=["GET"])
 def login():
     return render_template("login.html.jinja", request)
+
+@app.route("/game", methods=["GET"])
+def returnGameTemplate():
+    return render_template("game.html.jinja", request)
+
+
+@app.route("/startNewGame", methods=["POST"])
+def startNewGame():
+    response = {}
+    try:
+        username = checkToken(request.cookies["token"]) if "token" in request.cookies.keys() else None
+        game = Game(username)
+        db.session.add(game)
+        db.session.flush()
+        db.session.refresh(game)
+        db.session.commit()
+        response["data"] = {}
+        response["data"]["_gameId"] = game.gameId
+        response["data"]["gameId"] = game.idToHexString()
+        if not username:
+            response["data"]["gameKey"] = game.gameKey
+        response["success"] = True
+    except Exception as e:
+        app.logger.error(e)
+        response["success"] = False
+    return json.dumps(response)
+
+@app.route("/makeMove", methods=["POST"])
+def makeMove():
+    response = {}
+    try:
+        username = checkToken(request.cookies["token"]) if "token" in request.cookies.keys() else False
+        app.logger.info(username)
+        gameId = int("0x" + request.form["gameId"], 16)
+        app.logger.info(gameId)
+        gameKey = request.form["gameKey"] if "gameKey" in request.form else False
+        app.logger.info(gameKey)
+        entries = db.session.query(Game).filter(Game.player == username).filter(Game.gameId == gameId).all() if username else db.session.query(Game).filter(Game.gameKey == gameKey).filter(Game.gameId == gameId).filter(Game.player == None).all()
+        app.logger.info(entries)
+
+        if not len(entries) == 1:
+            raise ValueError("no entries found")
+        
+        game = entries[0]
+        db.session.add(Move(game.gameId, int(request.form["movePosition"])))
+        db.session.commit()
+        response["success"] = True
+    except Exception as e:
+        app.logger.error(e)
+        response["success"] = False
+    return json.dumps(response)
+
+@app.route("/viewgame", methods=["POST"])
+def sendGameInfo():
+    response = {}
+    try:
+        gameId = int("0x" + request.form["gameId"], 16)
+        response["data"] = [{"gameId":i.gameId, "moveIndex":i.moveIndex, "movePosition":i.movePosition} for i in db.session.query(Move).filter(Move.gameId == gameId).all()]
+        response["success"] = True
+    except Exception as e:
+        app.logger.error(e)
+        response["success"] = False
+    return json.dumps(response)
 
 @app.route("/signup", methods=["POST"])
 def signupSubmission():

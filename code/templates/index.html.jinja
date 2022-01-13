@@ -8,14 +8,15 @@
     </div>
     {% if username %}      
         {{forms.labelledHr(label="your account")}}
-        {{forms.button(label="New game", action="javascript:startNewGame()", class="primaryAction")}}
-        {{forms.button(label="View stats", action="javascript:showStatistics()")}}
-        {{forms.button(label="Log out", action="javascript:logout()")}}
+        {{forms.button(label="New game", action="goto('/game')", class="primaryAction")}}
+        {{forms.button(label="Join game", action="joinGame()")}}
+        {{forms.button(label="View stats", action="showStatistics()")}}
+        {{forms.button(label="Log out", action="logout()")}}
         {{forms.labelledHr(label="general")}}
-        {{forms.button(label="Browse games", action="javascript:browseGames()")}}
+        {{forms.button(label="Browse games", action="browseGames()")}}
     {% else %}
-        {{forms.button(label="Play as guest", action="javascript:playAsGuest()", class="primaryAction")}}
-        {{forms.button(label="Browse games", action="javascript:browseGames()")}}
+        {{forms.button(label="Play as guest", action="goto('/game')", class="primaryAction")}}
+        {{forms.button(label="Browse games", action="browseGames()")}}
         {{forms.labelledHr(label="or")}}
         {{forms.button(label="Create account", action="goto('/signup')")}}
         {{forms.button(label="Log in", action="goto('/login')")}}

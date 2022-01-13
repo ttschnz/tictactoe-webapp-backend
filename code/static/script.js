@@ -1,6 +1,68 @@
+const goto = (link) => {
+        document.location.pathname = link;
+    },
+    joinGame = () => {
+        alert("joining game");
+    },
+
+    showStatistics = () => {
+        alert("showing statistics");
+    },
+    setCookie = (name, value, expiresUNIX) => {
+        const d = new Date();
+        d.setTime(expiresUNIX);
+        let expires = "expires=" + d.toUTCString();
+        document.cookie = name + "=" + value + ";" + expires + ";path=/";
+    },
+
+    logout = () => {
+        setCookie("token", "", 0);
+        document.location.reload();
+    },
+    browseGames = () => {
+        alert("browsing games");
+    };
+
+
+class Game {
+    constructor(gameId, gameKey, username) {
+        this.gameId = gameId;
+        this.gameKey = gameKey;
+        this.username = username;
+    }
+
+    async render(target) {
+        this.lastState = await this.requestState();
+        target.innerHTML = JSON.stringify(this.lastState);
+    }
+
+    makeMove(movePosition) {
+        return new Promise((resolve, reject) => {
+            $.post("/makeMove", {
+                gameId: this.gameId,
+                gameKey: this.gameKey,
+                username: this.username,
+                movePosition
+            }, result => {
+                if (result.success) resolve(result.data);
+                else reject("ERROR GETTING GAME-STATE");
+            }, "json");
+        })
+    }
+
+    requestState() {
+        return new Promise((resolve, reject) => {
+            $.post("/viewgame", {
+                gameId: this.gameId
+            }, result => {
+                if (result.success) resolve(result.data);
+                else reject("ERROR GETTING GAME-STATE");
+            }, "json");
+        })
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-    console.log(forge);
-    console.log(document.querySelectorAll("#signupForm"));
     document.querySelectorAll("#signupForm").forEach((elmnt) => {
         elmnt.addEventListener("submit", (e) => {
             e.preventDefault(); // don't submit form
@@ -31,7 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (response.success) {
                     if (response.data.token) {
-                        setCookie("token", response.data.token)
+                        setCookie("token", response.data.token, response.data.token_expires)
                         goto("/");
                     } else {
                         goto("/signin");
@@ -81,8 +143,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
 
                         if (response.success) {
-                            setCookie("token", response.data.token, response.data.token_expires)
-                            goto("/");
+                            setCookie("token", response.data.token, response.data.token_expires);
+                            // goto("/");
                         } else {
                             elmnt.querySelector("#feedBackElement").innerHTML = "";
                             elmnt.querySelector("#feedBackElement").appendChild(document.createTextNode("Error. Please check your entries or try again later."));
@@ -112,31 +174,17 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         })
     });
-    window.goto = (link) => {
-        document.location.pathname = link;
-    };
-    window.startNewGame = () => {
-        alert("starting new game");
-    }
-
-    window.showStatistics = () => {
-        alert("showing statistics");
-    }
-    window.setCookie = (name, value, expiresUNIX) => {
-        const d = new Date();
-        d.setTime(expiresUNIX);
-        let expires = "expires=" + d.toUTCString();
-        document.cookie = name + "=" + value + ";" + expires + ";path=/";
-    }
-    window.playAsGuest = () => {
-        alert("playing as guest");
-    }
-    window.logout = () => {
-        setCookie("token", "", new Date().getTime());
-        document.location.reload();
-    }
-    window.browseGames = ()=>{
-        alert("browsing games");
-    }
-
+    document.querySelectorAll("#gamecontainer").forEach((elmnt) => {
+        let username = elmnt.dataset.username == "" ? false : elmnt.dataset.username;
+        $.post("/startNewGame", {}, async response => {
+            if (response.success) {
+                let game = new Game(response.data.gameId, response.data.gameKey ?? false, username);
+                elmnt.game = game;
+                await game.makeMove(0);
+                await game.render(elmnt);
+            } else {
+                console.error("error starting new game");
+            }
+        }, "json");
+    });
 });
