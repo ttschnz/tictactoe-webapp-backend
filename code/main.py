@@ -23,7 +23,7 @@ def render_template(fileName, request):
 def checkToken(token) -> str|bool:
     app.logger.debug("-----------------------")
     app.logger.debug(db.session.query(Session).all()[0].sessionStart)
-    matchingEntries = db.session.query(Session).filter(Session.sessionKey==token).filter(Session.sessionStart > datetime.utcfromtimestamp(round(time.time()) + int(os.environ["SESSION_TIMEOUT"]))).all()
+    matchingEntries = db.session.query(Session).filter(Session.sessionKey==token).filter(Session.sessionStart < datetime.utcfromtimestamp(round(time.time()) + int(os.environ["SESSION_TIMEOUT"]))).all()
     return matchingEntries[0].username if len(matchingEntries) == 1 else False
 
 # generates a token for a user, inserts it to the db and returns the token. False if failed
@@ -148,7 +148,7 @@ def loginSubmission():
             if token:
                 response["data"] = {}
                 response["data"]["token"] = token
-                response["data"]["token_expires"] = os.environ["SESSION_TIMEOUT"] + round(time.time())
+                response["data"]["token_expires"] = int(os.environ["SESSION_TIMEOUT"]) + round(time.time())
             else:
                 response["success"] = False
     except:
@@ -232,7 +232,7 @@ def signupSubmission():
         # generate a token
         response["data"] = {}
         response["data"]["token"] = generateToken(request.form["username"])
-        response["data"]["token_expires"] = os.environ["SESSION_TIMEOUT"]
+        response["data"]["token_expires"] = int(os.environ["SESSION_TIMEOUT"]) + round(time.time())
         response["success"] = True
     except Exception as e:
         app.logger.error(e)

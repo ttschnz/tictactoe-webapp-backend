@@ -10,7 +10,7 @@ const goto = (link) => {
     },
     setCookie = (name, value, expiresUNIX) => {
         const d = new Date();
-        d.setTime(expiresUNIX);
+        d.setTime(expiresUNIX*1000);
         let expires = "expires=" + d.toUTCString();
         document.cookie = name + "=" + value + ";" + expires + ";path=/";
     },
@@ -93,18 +93,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (response.success) {
                     if (response.data.token) {
-                        setCookie("token", response.data.token, response.data.token_expires)
+                        setCookie("token", response.data.token, response.data.token_expires);
                         goto("/");
                     } else {
                         goto("/signin");
                     }
                 } else {
-                    elmnt.querySelector("#feedBackElement").innerHTML = "";
-                    elmnt.querySelector("#feedBackElement").appendChild(document.createTextNode("Error. Please check your entries or try again later."));
+                    document.querySelector("#feedBackElement").innerHTML = "";
+                    document.querySelector("#feedBackElement").appendChild(document.createTextNode("Error. Please check your entries or try again later."));
                 }
             }, "json").fail(() => {
-                elmnt.querySelector("#feedBackElement").innerHTML = "";
-                elmnt.querySelector("#feedBackElement").appendChild(document.createTextNode("Error. Please check your entries or try again later."));
+                document.querySelector("#feedBackElement").innerHTML = "";
+                document.querySelector("#feedBackElement").appendChild(document.createTextNode("Error. Please check your entries or try again later."));
 
                 // re-enable buttons
                 elmnt.querySelectorAll("button").forEach((button) => {
@@ -144,14 +144,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         if (response.success) {
                             setCookie("token", response.data.token, response.data.token_expires);
-                            // goto("/");
+                            goto("/");
                         } else {
-                            elmnt.querySelector("#feedBackElement").innerHTML = "";
-                            elmnt.querySelector("#feedBackElement").appendChild(document.createTextNode("Error. Please check your entries or try again later."));
+                            document.querySelector("#feedBackElement").innerHTML = "";
+                            document.querySelector("#feedBackElement").appendChild(document.createTextNode("Error. Please check your entries or try again later."));
                         }
                     }, "json").fail(() => {
-                        elmnt.querySelector("#feedBackElement").innerHTML = "";
-                        elmnt.querySelector("#feedBackElement").appendChild(document.createTextNode("Error. Please check your entries or try again later."));
+                        document.querySelector("#feedBackElement").innerHTML = "";
+                        document.querySelector("#feedBackElement").appendChild(document.createTextNode("Error. Please check your entries or try again later."));
 
                         // re-enable buttons
                         elmnt.querySelectorAll("button").forEach((button) => {
@@ -160,12 +160,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
 
                 } else {
-                    elmnt.querySelector("#feedBackElement").innerHTML = "";
-                    elmnt.querySelector("#feedBackElement").appendChild(document.createTextNode("Error. Please check your entries or try again later."));
+                    document.querySelector("#feedBackElement").innerHTML = "";
+                    document.querySelector("#feedBackElement").appendChild(document.createTextNode("Error. Please check your entries or try again later."));
                 }
             }, "json").fail(() => {
-                elmnt.querySelector("#feedBackElement").innerHTML = "";
-                elmnt.querySelector("#feedBackElement").appendChild(document.createTextNode("Error. Please check your entries or try again later."));
+                document.querySelector("#feedBackElement").innerHTML = "";
+                document.querySelector("#feedBackElement").appendChild(document.createTextNode("Error. Please check your entries or try again later."));
 
                 // re-enable buttons
                 elmnt.querySelectorAll("button").forEach((button) => {
