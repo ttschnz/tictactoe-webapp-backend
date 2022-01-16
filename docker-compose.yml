@@ -37,7 +37,7 @@ services:
       - ./code:/code:ro
       - ./.well-known:/.well-known:ro
       - /etc/letsencrypt:/letsencrypt:ro
-      - .git/.git:ro
+      - ./.git:/.git:ro
     depends_on:
       - db
         # condition: service_healthy
