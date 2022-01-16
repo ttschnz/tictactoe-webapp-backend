@@ -263,6 +263,10 @@ def test():
 def wellKnown(filename):
     return send_from_directory("/.well-known", filename)
 
+@app.route("/robots.txt")
+def robots():
+    return "User-agent: *\nDisallow: *"
+    
 # only debug if not as module
 if __name__ == "__main__":    
     # returns true if server is reachable
