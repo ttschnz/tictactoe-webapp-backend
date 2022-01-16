@@ -26,6 +26,8 @@ services:
     build: .
     container_name: flaskServer
     restart: always
+    environment:
+      - VERSION_NAME=${VERSION_NAME}
     env_file:
       - global.env
       - web.env
