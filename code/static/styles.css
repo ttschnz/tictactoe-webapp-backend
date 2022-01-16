@@ -15,7 +15,7 @@ body {
     background-color: var(--lightColor100);
 }
 
-header {
+header, footer {
     background: var(--color200);
 }
 
@@ -37,12 +37,16 @@ main {
     justify-content: center;
 }
 
-header {
-    padding: 20px;
-    box-shadow: 0px 3px 3px 0 var(--color700);
+header, footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    padding: 20px;
+    box-shadow: 0px 3px 3px 0 var(--color700);
+}
+footer{
+    justify-content: flex-end;
+    padding:5px;
 }
 
 .tile {
@@ -182,9 +186,10 @@ a {
     transition: border-bottom .33s;
 }
 
-a:hover, a:focus{
+a > *:not(img):not(svg):hover, a > *:not(img):not(svg):focus{
     border-bottom: 1px solid black;
 }
 *[onclick]{
     cursor: pointer;
 }
+
