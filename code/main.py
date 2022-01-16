@@ -2,8 +2,6 @@
 from gevent.pywsgi import WSGIServer
 # flask for serving files
 from flask import Flask, render_template as rt_, request, jsonify, send_from_directory, abort
-# redirect http to https
-from flask_sslify import SSLify
 # SQLAlchemy to access the database
 from flask_sqlalchemy import SQLAlchemy
 # we will use os to access enviornment variables stored in the *.env files, time for delays and json for ajax-responses
@@ -13,7 +11,6 @@ from datetime import datetime
 
 # initialize flask application with template_folder pointed to public_html (relative to this file)
 app=Flask(__name__)
-SSLify(app)
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = True
 app.config["SQLALCHEMY_DATABASE_URI"] =  f"postgresql://{os.environ['POSTGRES_USER']}:{os.environ['POSTGRES_PASSWORD']}@db/tictactoe"
 app.config['SQLALCHEMY_ECHO'] = True
