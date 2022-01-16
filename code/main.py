@@ -293,7 +293,7 @@ if __name__ == "__main__":
                 raise ValueError("HTTPS_PORT not given (config in .env file)")
             sslContext = tuple([os.path.join(os.environ["CERT_DIR"], i) for i in ['cert.pem', 'privkey.pem']])
             print("starting server with ssl on port", os.environ["HTTPS_PORT"], "ssl context=", sslContext)
-            https_server = WSGIServer(('', os.environ["HTTPS_PORT"]), app, ssl_context=sslContext)
+            https_server = WSGIServer(('0.0.0.0', os.environ["HTTPS_PORT"]), app, ssl_context=sslContext)
             https_server.serve_forever()
             # app.run(host="0.0.0.0", port=os.environ["HTTPS_PORT"], ssl_context=sslContext)
         except Exception as e:
@@ -301,7 +301,7 @@ if __name__ == "__main__":
     
     if "HTTP_PORT" in os.environ:
         print("starting server without ssl on port", os.environ["HTTP_PORT"])
-        http_server = WSGIServer(('', os.environ["HTTP_PORT"]), app)
+        http_server = WSGIServer(('0.0.0.0', os.environ["HTTP_PORT"]), app)
         http_server.serve_forever()
         # app.run(host="0.0.0.0", port=os.environ["HTTP_PORT"])
 
