@@ -1,5 +1,9 @@
+# since the builtin flask server is not for production, we use the gevent
+from gevent.wsgi import WSGIServer
 # flask for serving files
 from flask import Flask, render_template as rt_, request, jsonify, send_from_directory, abort
+# redirect http to https
+from flask_sslify import SSLify
 # SQLAlchemy to access the database
 from flask_sqlalchemy import SQLAlchemy
 # we will use os to access enviornment variables stored in the *.env files, time for delays and json for ajax-responses
@@ -9,6 +13,7 @@ from datetime import datetime
 
 # initialize flask application with template_folder pointed to public_html (relative to this file)
 app=Flask(__name__)
+SSLify(app)
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = True
 app.config["SQLALCHEMY_DATABASE_URI"] =  f"postgresql://{os.environ['POSTGRES_USER']}:{os.environ['POSTGRES_PASSWORD']}@db/tictactoe"
 app.config['SQLALCHEMY_ECHO'] = True
@@ -288,13 +293,17 @@ if __name__ == "__main__":
                 raise ValueError("HTTPS_PORT not given (config in .env file)")
             sslContext = tuple([os.path.join(os.environ["CERT_DIR"], i) for i in ['cert.pem', 'privkey.pem']])
             print("starting server with ssl on port", os.environ["HTTPS_PORT"], "ssl context=", sslContext)
-            app.run(host="0.0.0.0", port=os.environ["HTTPS_PORT"], ssl_context=sslContext)
+            https_server = WSGIServer(('', os.environ["HTTPS_PORT"]), app, ssl_context=sslContext)
+            https_server.serve_forever()
+            # app.run(host="0.0.0.0", port=os.environ["HTTPS_PORT"], ssl_context=sslContext)
         except Exception as e:
             print("ERROR starting server on https:", e)
     
     if "HTTP_PORT" in os.environ:
         print("starting server without ssl on port", os.environ["HTTP_PORT"])
-        app.run(host="0.0.0.0", port=os.environ["HTTP_PORT"])
+        http_server = WSGIServer(('', os.environ["HTTP_PORT"]), app)
+        http_server.serve_forever()
+        # app.run(host="0.0.0.0", port=os.environ["HTTP_PORT"])
 
     if "HTTP_PORT" not in os.environ and "HTTPS_PORT" not in os.environ:
         print("no server started because no ports were indicated.")
