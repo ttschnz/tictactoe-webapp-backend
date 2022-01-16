@@ -36,7 +36,7 @@
         </main>
         <footer>
             {% if version %}
-            <a href="https://github.com/ttschnz/tictactoe_webapp/tree/{{ version }}" title="{{behind}} versions behind"><span class="versionId">{{ version }}</span></a>
+            <a href="https://github.com/ttschnz/tictactoe_webapp/tree/{{ version }}" {% if behind %}title="{{behind}} versions behind"{% endif %}><span class="versionId">{{ version }}</span></a>
             {% else %}
             <span></span>
             {% endif %}
