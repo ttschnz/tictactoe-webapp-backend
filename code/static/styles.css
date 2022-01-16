@@ -45,8 +45,8 @@ header, footer {
     box-shadow: 0px 3px 3px 0 var(--color700);
 }
 footer{
-    justify-content: flex-end;
     padding:5px;
+    align-items: flex-end;
 }
 
 .tile {
@@ -193,3 +193,14 @@ a > *:not(img):not(svg):hover, a > *:not(img):not(svg):focus{
     cursor: pointer;
 }
 
+
+.versionId {
+    max-width:200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: monospace;
+}
+.versionId::before{
+    content:"version: ";
+}

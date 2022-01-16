@@ -35,8 +35,10 @@
             {% block main %}{% endblock %}
         </main>
         <footer>
-            <span>version: {{ version }}</span>
             {% if version %}
+            <a href="https://github.com/ttschnz/tictactoe_webapp/commit/{{ version }}"><span class="versionId">{{ version }}</span></a>
+            {% else %%}
+            <span></span>
             {% endif %}
             <a href="https://www.digitalocean.com/?refcode=5431ada19bb0&utm_campaign=Referral_Invite&utm_medium=Referral_Program&utm_source=badge"><img src="https://web-platforms.sfo2.digitaloceanspaces.com/WWW/Badge%203.svg" alt="DigitalOcean Referral Badge" /></a>
         </footer>
