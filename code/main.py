@@ -257,11 +257,7 @@ def test():
 # as it checks if the path of the absolute file is inside the given directory (see https://tedboy.github.io/flask/_modules/flask/helpers.html#send_from_directory)
 @app.route("/.well-known/<path:filename>")
 def wellKnown(filename):
-    if("WELL_KNOWN_PATH" in os.environ):
-        app.logger.info(filename)
-        return send_from_directory(os.environ["WELL_KNOWN_PATH"], filename)
-    else:
-        abort(404)
+    return send_from_directory("/.well-known", filename)
 
 # only debug if not as module
 if __name__ == "__main__":    
