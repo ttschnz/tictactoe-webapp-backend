@@ -11,6 +11,6 @@ RUN pip install pycrypto
 # better server
 RUN pip install gevent
 # threading
-RUN pip install threading
+# RUN pip install threading
 
 CMD python /code/main.py
