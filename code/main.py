@@ -299,8 +299,10 @@ if __name__ == "__main__":
             # app.run(host="0.0.0.0", port=os.environ["HTTPS_PORT"], ssl_context=sslContext)
         except Exception as e:
             print("ERROR starting server on https:", e)
+            print("starting HTTP server instead...")
+            os.environ["HTTP_PORT"] = 80 if not "HTTP_PORT" in os.environ else os.environ["HTTP_PORT"]
     
-    elif "HTTP_PORT" in os.environ:
+    if "HTTP_PORT" in os.environ:
         print("starting server without ssl on port", os.environ["HTTP_PORT"])
         httpServer = WSGIServer(('0.0.0.0', int(os.environ["HTTP_PORT"])), app)
         httpServer.serve_forever()
