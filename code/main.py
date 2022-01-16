@@ -8,8 +8,6 @@ from flask_sqlalchemy import SQLAlchemy
 import os, time, json, random
 import secrets
 from datetime import datetime 
-# treading for starting http and https server simultaneously
-import threading
 
 # initialize flask application with template_folder pointed to public_html (relative to this file)
 app=Flask(__name__)
@@ -297,18 +295,16 @@ if __name__ == "__main__":
             sslContext = tuple([os.path.join(os.environ["CERT_DIR"], i) for i in ['cert.pem', 'privkey.pem']])
             print("starting server with ssl on port", os.environ["HTTPS_PORT"], "ssl context=", sslContext)
             httpsServer = WSGIServer(('0.0.0.0', int(os.environ["HTTPS_PORT"])), app, certfile=sslContext[0], keyfile=sslContext[1])
-            httpsServerThread = threading.Thread(target=httpsServer.serve_forever)
-            httpsServerThread.start()
+            httpsServer.serve_forever()
             # app.run(host="0.0.0.0", port=os.environ["HTTPS_PORT"], ssl_context=sslContext)
         except Exception as e:
             print("ERROR starting server on https:", e)
     
-    if "HTTP_PORT" in os.environ:
+    elif "HTTP_PORT" in os.environ:
         print("starting server without ssl on port", os.environ["HTTP_PORT"])
         httpServer = WSGIServer(('0.0.0.0', int(os.environ["HTTP_PORT"])), app)
-        httpServerThread = threading.Thread(target=httpServer.serve_forever)
-        httpServerThread.start()
+        httpServer.serve_forever()
         # app.run(host="0.0.0.0", port=os.environ["HTTP_PORT"])
 
-    if "HTTP_PORT" not in os.environ and "HTTPS_PORT" not in os.environ:
+    else:
         print("no server started because no ports were indicated.")
