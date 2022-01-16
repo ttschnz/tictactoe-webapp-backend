@@ -1,5 +1,5 @@
 # flask for serving files
-from flask import Flask, render_template as rt_, request, jsonify
+from flask import Flask, render_template as rt_, request, jsonify, send_from_directory, abort
 # SQLAlchemy to access the database
 from flask_sqlalchemy import SQLAlchemy
 # we will use os to access enviornment variables stored in the *.env files, time for delays and json for ajax-responses
@@ -163,6 +163,9 @@ def login():
 def returnGameTemplate():
     return render_template("game.html.jinja", request)
 
+@app.route("/game/<game_id>", methods=["GET"])
+def returnGameInfo(game_id):
+    return game_id
 
 @app.route("/startNewGame", methods=["POST"])
 def startNewGame():
@@ -247,6 +250,18 @@ def signup():
 @app.route("/test", methods=["GET", "POST"])
 def test():
     return secrets.token_hex(256//2)
+
+# for .well-known stuff (e.g. acme-challenges for ssl-certs)
+#
+# note that directory traversal volnerabilities are prevented by send_from_directory 
+# as it checks if the path of the absolute file is inside the given directory (see https://tedboy.github.io/flask/_modules/flask/helpers.html#send_from_directory)
+@app.route("/.well-known/<path:filename>")
+def wellKnown(filename):
+    if("WELL_KNOWN_PATH" in os.environ):
+        app.logger.info(filename)
+        return send_from_directory(os.environ["WELL_KNOWN_PATH"], filename)
+    else:
+        abort(404)
 
 # only debug if not as module
 if __name__ == "__main__":    

@@ -35,6 +35,7 @@ services:
     volumes:
       # mount app as read-only
       - ./code:/code:ro
+      - ./well-known:/.well-known:ro
     depends_on:
       - db
         # condition: service_healthy
@@ -44,3 +45,4 @@ volumes:
   dbdata:
   code:
   pg_hba.conf:
+  well-known:
