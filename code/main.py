@@ -97,10 +97,7 @@ class Move(db.Model):
     
     def checkValidity(self):
         # check if there is no other entry with same pos and gameid
-        app.logger.info("-----------checking validity-----------")
         sameMoves = db.session.query(Move).filter(Move.gameId == self.gameId).filter(Move.movePosition == self.movePosition).all()
-        db.session
-        app.logger.info(sameMoves)
         if not len(sameMoves) == 0:
             raise ValueError("field is allready occupied by another move:", (self.gameId,sameMoves[0].gameId), (self.moveIndex, sameMoves[0].moveIndex),(self.movePosition,sameMoves[0].movePosition))
         return True

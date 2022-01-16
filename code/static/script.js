@@ -25,18 +25,53 @@ const goto = (link) => {
 
 
 class Game {
-    constructor(gameId, gameKey, username) {
+    constructor(gameId, gameKey, username, targetElmnt) {
+        this.targetElmnt = targetElmnt;
         this.gameId = gameId;
         this.gameKey = gameKey;
         this.username = username;
+        this.tiles = Array(3).fill(0).map(x => Array(3).fill(null));
+        this._makeTiles();
     }
 
-    async render(target) {
+    async render() {
         this.lastState = await this.requestState();
-        target.innerHTML = JSON.stringify(this.lastState);
+        for(let i of this.lastState){
+            console.log(i.movePosition);
+            let x = i.movePosition%3;
+            let y = Math.floor(i.movePosition/3);
+            console.log({x,y});
+            this.tiles[x][y].dataset.occupiedBy="x";
+        }
+    }
+
+    _makeTiles(){
+        for(let y in [0,1,2]){
+            for(let x in [0,1,2]){
+                this.tiles[x][y] = this._makeTile({x, y});
+                this.targetElmnt.appendChild(this.tiles[x][y]);
+            }
+        }
+    }
+
+    _makeTile(coords){
+        let tile = document.createElement("div");
+        tile.classList.add("gameTile");
+        tile.dataset.occupiedBy="false";
+        tile.dataset.x=coords["x"];
+        tile.dataset.y=coords["y"];
+        tile.addEventListener("click", (()=>{
+            if(tile.dataset.occupiedBy=="false"){
+                console.log(coords)
+                this.makeMove(Number(coords.x)+(Number(coords.y)*3));
+                this.render();
+            }
+        }).bind(this))
+        return tile;
     }
 
     makeMove(movePosition) {
+        console.log("making move on movePosition", movePosition)
         return new Promise((resolve, reject) => {
             $.post("/makeMove", {
                 gameId: this.gameId,
@@ -178,10 +213,10 @@ document.addEventListener('DOMContentLoaded', () => {
         let username = elmnt.dataset.username == "" ? false : elmnt.dataset.username;
         $.post("/startNewGame", {}, async response => {
             if (response.success) {
-                let game = new Game(response.data.gameId, response.data.gameKey ?? false, username);
+                let game = new Game(response.data.gameId, response.data.gameKey ?? false, username, elmnt);
                 elmnt.game = game;
                 await game.makeMove(0);
-                await game.render(elmnt);
+                await game.render();
             } else {
                 console.error("error starting new game");
             }
