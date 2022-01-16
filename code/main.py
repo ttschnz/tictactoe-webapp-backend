@@ -21,7 +21,7 @@ db = SQLAlchemy(app)
 # proxy for default render template, passes the filename to the actual render_template fn and wether the user is signed in or not
 def render_template(fileName, request):
     username = checkToken(request.cookies["token"]) if "token" in request.cookies.keys() else False
-    return rt_(fileName, username=username) if username else rt_(fileName)
+    return rt_(fileName, username=username if username else False, version=os.environ["VERSION_NAME"] if "VERSION_NAME" in os.environ else False)
 
 # checks if token is valid and returns username if so. if not, it returns False
 def checkToken(token) -> str|bool:
@@ -266,7 +266,7 @@ def wellKnown(filename):
 @app.route("/robots.txt")
 def robots():
     return "User-agent: *\nDisallow: *"
-    
+
 # only debug if not as module
 if __name__ == "__main__":    
     # returns true if server is reachable
