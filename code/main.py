@@ -286,7 +286,7 @@ if __name__ == "__main__":
                 raise ValueError("CERT_DIR not given (config in .env file)")
             if "HTTPS_PORT" not in os.environ:
                 raise ValueError("HTTPS_PORT not given (config in .env file)")
-            sslContext = tuple([os.path.join(os.environ["CERT_DIR"], i) for i in ['cert.pem', 'key.pem']])
+            sslContext = tuple([os.path.join(os.environ["CERT_DIR"], i) for i in ['cert.pem', 'privkey.pem']])
             print("starting server with ssl on port", os.environ["HTTPS_PORT"], "ssl context=", sslContext)
             app.run(host="0.0.0.0", port=os.environ["HTTPS_PORT"], ssl_context=sslContext)
         except Exception as e:
