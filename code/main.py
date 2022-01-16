@@ -281,15 +281,20 @@ if __name__ == "__main__":
     print("ssl enabled:", os.environ["ENABLE_SSL"])
     # 0.0.0.0 => allow all adresses to have access (important for docker-environment)
     if "ENABLE_SSL" in os.environ and os.environ["ENABLE_SSL"].upper() == "TRUE":
-        if "CERT_DIR" not in os.environ:
-            raise ValueError("CERT_DIR not given (config in .env file)")
-        if "HTTPS_PORT" not in os.environ:
-            raise ValueError("HTTPS_PORT not given (config in .env file)")
-        sslContext = tuple([os.path.join(os.environ["CERT_DIR"], i) for i in ['cert.pem', 'key.pem']])
-        print("starting server with ssl on port", os.environ["HTTPS_PORT"], "ssl context=", sslContext)
-        app.run(host="0.0.0.0", port=os.environ["HTTPS_PORT"], ssl_context=sslContext)
-    else:
-        if "HTTP_PORT" not in os.environ:
-            raise ValueError("HTTP_PORT not given (config in .env file)")
+        try:
+            if "CERT_DIR" not in os.environ:
+                raise ValueError("CERT_DIR not given (config in .env file)")
+            if "HTTPS_PORT" not in os.environ:
+                raise ValueError("HTTPS_PORT not given (config in .env file)")
+            sslContext = tuple([os.path.join(os.environ["CERT_DIR"], i) for i in ['cert.pem', 'key.pem']])
+            print("starting server with ssl on port", os.environ["HTTPS_PORT"], "ssl context=", sslContext)
+            app.run(host="0.0.0.0", port=os.environ["HTTPS_PORT"], ssl_context=sslContext)
+        except Exception as e:
+            print("ERROR starting server on https:", e)
+    
+    if "HTTP_PORT" in os.environ:
         print("starting server without ssl on port", os.environ["HTTP_PORT"])
         app.run(host="0.0.0.0", port=os.environ["HTTP_PORT"])
+
+    if "HTTP_PORT" not in os.environ and "HTTPS_PORT" not in os.environ:
+        print("no server started because no ports were indicated.")
