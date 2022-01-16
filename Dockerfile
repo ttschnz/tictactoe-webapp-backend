@@ -10,7 +10,5 @@ RUN pip install psycopg2-binary
 RUN pip install pycrypto
 # better server
 RUN pip install gevent
-# threading
-# RUN pip install threading
 
 CMD python /code/main.py
