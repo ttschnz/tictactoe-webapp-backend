@@ -305,6 +305,5 @@ if __name__ == "__main__":
         httpServer = WSGIServer(('0.0.0.0', int(os.environ["HTTP_PORT"])), app)
         httpServer.serve_forever()
         # app.run(host="0.0.0.0", port=os.environ["HTTP_PORT"])
-
     else:
         print("no server started because no ports were indicated.")
