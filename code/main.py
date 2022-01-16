@@ -282,5 +282,18 @@ if __name__ == "__main__":
         time.sleep(5)
 
     print("server reached and initialized, starting web-service")
+    print("ssl enabled:", os.environ["ENABLE_SSL"])
     # 0.0.0.0 => allow all adresses to have access (important for docker-environment)
-    app.run(host="0.0.0.0", port=os.environ["HTTP_PORT"])
+    if "ENABLE_SSL" in os.environ and os.environ["ENABLE_SSL"].upper() == "TRUE":
+        if "CERT_DIR" not in os.environ:
+            raise ValueError("CERT_DIR not given (config in .env file)")
+        if "HTTPS_PORT" not in os.environ:
+            raise ValueError("HTTPS_PORT not given (config in .env file)")
+        sslContext = tuple([os.path.join(os.environ["CERT_DIR"], i) for i in ['cert.pem', 'key.pem']])
+        print("starting server with ssl on port", os.environ["HTTPS_PORT"], "ssl context=", sslContext)
+        app.run(host="0.0.0.0", port=os.environ["HTTPS_PORT"], ssl_context=sslContext)
+    else:
+        if "HTTP_PORT" not in os.environ:
+            raise ValueError("HTTP_PORT not given (config in .env file)")
+        print("starting server without ssl on port", os.environ["HTTP_PORT"])
+        app.run(host="0.0.0.0", port=os.environ["HTTP_PORT"])
