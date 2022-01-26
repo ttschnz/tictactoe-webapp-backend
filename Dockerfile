@@ -10,5 +10,7 @@ RUN pip install psycopg2-binary
 RUN pip install pycrypto
 # better server
 RUN pip install gevent
+# query result to json
+RUN pip install SQLAlchemy-serializer
 
 CMD python /code/main.py

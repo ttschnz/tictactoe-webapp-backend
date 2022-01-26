@@ -4,6 +4,8 @@ from gevent.pywsgi import WSGIServer
 from flask import Flask, render_template as rt_, request, jsonify, send_from_directory, abort
 # SQLAlchemy to access the database
 from flask_sqlalchemy import SQLAlchemy
+# serializer to transform query result to json
+from sqlalchemy_serializer import SerializerMixin
 # we will use os to access enviornment variables stored in the *.env files, time for delays and json for ajax-responses
 import os, time, json, random
 import secrets
@@ -41,8 +43,30 @@ def generateToken(username) -> str|bool:
     except:
         return False
 
+# add sample data for testing
+def addSampleData(dataCount=20):
+    userList = [f"sampleUser{i}" for i in range(dataCount)]
+    # add users
+    for username in userList:
+        db.session.add(User(username, f"emailof@{username}.localhost",secrets.token_hex(256//2),secrets.token_hex(256//2)))
+    db.session.commit()
+    
+    # add games
+    for _ in range(dataCount**2):
+        game = Game(random.choice(userList))
+        db.session.add(game)
+        db.session.flush()
+        db.session.refresh(game)
+        db.session.commit()  
+        # add moves 
+        for i in range(9):
+            print(i,game.attacker if i % 2 == 0 else os.environ["BOT_USERNAME"])
+            db.session.add(Move(game.gameId, i, game.attacker if i % 2 == 0 else os.environ["BOT_USERNAME"]))
+        db.session.commit()  
+    return
+
 # table to store users and their password to
-class User(db.Model):
+class User(db.Model, SerializerMixin):
     __tablename__ = "users"
     username=db.Column(db.String(16), primary_key=True, nullable=False)
     email=db.Column(db.String(256))
@@ -59,14 +83,16 @@ class User(db.Model):
         self.salt=salt
 
 # table to store games and their players to
-class Game(db.Model):
+class Game(db.Model, SerializerMixin):
     __tablename__ = "games"
     gameId = db.Column(db.Integer(), primary_key=True, autoincrement="auto", name="gameid")
-    player = db.Column(db.String(16), db.ForeignKey("users.username"))
     gameKey = db.Column(db.String(32))
+    attacker = db.Column(db.String(16), db.ForeignKey("users.username"))
+    defender = db.Column(db.String(16), db.ForeignKey("users.username"))
     def __init__(self, player):
-        app.logger.info("game player username", player)
-        self.player = player if player else None
+        # app.logger.info("game player username", player)
+        self.attacker = player if player else None
+        self.defender = os.environ["BOT_USERNAME"]
         # only set key if not with an account
         self.gameKey = hex(random.randrange(16**32))[2:] if not player else None
 
@@ -74,13 +100,15 @@ class Game(db.Model):
         return ("0" * length + hex(self.gameId)[2:])[-6:]
 
 # table to store moves to
-class Move(db.Model):
+class Move(db.Model, SerializerMixin):
     __tablename__ = "moves"
     gameId = db.Column(db.Integer(), db.ForeignKey("games.gameid"), nullable=False, primary_key=True, name="gameid")
     moveIndex = db.Column(db.Integer(), nullable=False, primary_key=True, name="moveindex")
     movePosition = db.Column(db.Integer(), nullable=False, name="moveposition")
-    def __init__(self, gameId, movePosition):
-        self.gameId = gameId
+    player = db.Column(db.String(16),db.ForeignKey("users.username"))
+    def __init__(self, gameId, movePosition, player):
+        self.gameId = str(gameId)
+        self.player = player if player else None
         self.moveIndex = self.getMoveIndex()
         app.logger.info(self.moveIndex)
         self.movePosition = movePosition
@@ -100,10 +128,19 @@ class Move(db.Model):
         sameMoves = db.session.query(Move).filter(Move.gameId == self.gameId).filter(Move.movePosition == self.movePosition).all()
         if not len(sameMoves) == 0:
             raise ValueError("field is allready occupied by another move:", (self.gameId,sameMoves[0].gameId), (self.moveIndex, sameMoves[0].moveIndex),(self.movePosition,sameMoves[0].movePosition))
+        # check if the player is allowed to do this move
+        # if the move-index is even it should be the attacker (moves 0,2,4,...)
+        # else it shoud be the defender (moves 1,3,5,...)
+        # note: if the games player is none, "bot" is the defender (played as guest, therefore attacking)
+        game = db.session.query(Game).filter(Game.gameId == self.gameId).all()[0]
+        if self.moveIndex % 2 == 1 and game.attacker == self.player: # even and player is not the attacker
+            raise ValueError(f"player {self.player} is not allowed to make move #{self.movePosition}")
+        if self.moveIndex % 2 == 0 and game.defender == self.player: # odd and player is not the defender
+            raise ValueError(f"player {self.player} is not allowed to make move #{self.movePosition}")
         return True
 
 # table to store sessionKeys to (=tokens). Tokens allow faster and more secure authentication
-class Session(db.Model):
+class Session(db.Model, SerializerMixin):
     __tablename__ = "sessions"
     sessionId = db.Column(db.Integer(), primary_key=True, autoincrement="auto")
     username = db.Column(db.String(16), db.ForeignKey("users.username"), nullable=False)
@@ -120,13 +157,12 @@ def index():
 @app.route("/getsalt", methods=["POST"])
 def getsalt():
     # returns salt for keygeneration of demanded user
-    response = {}
+    response = {"success":True}
     try:
         users = db.session.query(User).filter(User.username==request.form["username"])
         # only return if 1 user has been found (since username is UNIQUE, it should only be 1 or 0)
         if(users.count()==1):
             response["data"] = users[0].salt
-            response["success"] = True
         else:
             response["success"] = False
     except:
@@ -136,7 +172,7 @@ def getsalt():
 
 @app.route("/login", methods=["POST"])
 def loginSubmission():
-    response = {}
+    response = {"success":True}
     try:
         # check if username and password match
         isAuthorized = db.session.query(User).filter(User.username==request.form["username"],User.key==request.form["key"]).count()==1
@@ -162,13 +198,44 @@ def login():
 def returnGameTemplate():
     return render_template("game.html.jinja", request)
 
-@app.route("/game/<game_id>", methods=["GET"])
-def returnGameInfo(game_id):
-    return game_id
+@app.route("/game/<gameId>", methods=["GET"])
+def returnGameInfo(gameId):
+    response = {"success":True}
+    try:
+        game = db.session.query(Game).filter(Game.gameId == gameId).all()[0]
+        response["game"] = {"gameId":game.gameId, "gameKey":game.gameKey, "attacker":game.attacker, "defender":game.defender}
+        moves = db.session.query(Move).filter(Move.gameId == gameId).all()
+        response["moves"] = []
+        for move in moves:
+            response["moves"].append({"position":move.movePosition, "player":move.player, "moveIndex": move.moveIndex})
+    except Exception as e:
+        response["success"] = False
+        app.logger.error(e)
+    return json.dumps(response)
+
+@app.route("/user", methods=["GET"])
+def returnUserTemplate():
+    return render_template("user.html.jinja", request)
+
+@app.route("/user/<username>", methods=["GET"])
+def returnUserInfo(username):
+    response = {"success":True}
+    # TODO: optimize
+    try:
+        games = db.session.query(Game).filter(Game.attacker == username).union(db.session.query(Game).filter(Game.defender==username)).all()
+        response["games"] = [game.to_dict() for game in games]
+        for game in response["games"]:
+            game.pop("gameKey")
+            moves = db.session.query(Move).filter(Move.gameId == game["gameId"]).all()
+            game["moves"] = [move.to_dict() for move in moves]
+        return json.dumps(response)
+    except Exception as e:
+        app.logger.error(e)
+        return json.dumps({"success":False})
 
 @app.route("/startNewGame", methods=["POST"])
 def startNewGame():
-    response = {}
+    response = {"success":True}
     try:
         username = checkToken(request.cookies["token"]) if "token" in request.cookies.keys() else None
         game = Game(username)
@@ -181,7 +248,6 @@ def startNewGame():
         response["data"]["gameId"] = game.idToHexString()
         if not username:
             response["data"]["gameKey"] = game.gameKey
-        response["success"] = True
     except Exception as e:
         app.logger.error(e)
         response["success"] = False
@@ -189,36 +255,34 @@ def startNewGame():
 
 @app.route("/makeMove", methods=["POST"])
 def makeMove():
-    response = {}
+    response = {"success":True}
     try:
-        username = checkToken(request.cookies["token"]) if "token" in request.cookies.keys() else False
+        username = checkToken(request.cookies["token"]) if "token" in request.cookies.keys() else None
         app.logger.info(username)
         gameId = int("0x" + request.form["gameId"], 16)
         app.logger.info(gameId)
-        gameKey = request.form["gameKey"] if "gameKey" in request.form else False
+        gameKey = request.form["gameKey"] if "gameKey" in request.form else None
         app.logger.info(gameKey)
-        entries = db.session.query(Game).filter(Game.player == username).filter(Game.gameId == gameId).all() if username else db.session.query(Game).filter(Game.gameKey == gameKey).filter(Game.gameId == gameId).filter(Game.player == None).all()
+        entries = db.session.query(Game).filter(Game.attacker == username).union(db.session.query(Game).filter(Game.defender == username)).filter(Game.gameId == gameId).all() if username else db.session.query(Game).filter(Game.gameKey == gameKey).filter(Game.gameId == gameId).filter(Game.attacker == None).all()
         app.logger.info(entries)
 
         if not len(entries) == 1:
             raise ValueError("no entries found")
         
         game = entries[0]
-        db.session.add(Move(game.gameId, int(request.form["movePosition"])))
+        db.session.add(Move(game.gameId, int(request.form["movePosition"]), username))
         db.session.commit()
-        response["success"] = True
     except Exception as e:
         app.logger.error(e)
         response["success"] = False
     return json.dumps(response)
 
-@app.route("/viewgame", methods=["POST"])
+@app.route("/viewGame", methods=["POST"])
 def sendGameInfo():
-    response = {}
+    response = {"success":True}
     try:
         gameId = int("0x" + request.form["gameId"], 16)
         response["data"] = [{"gameId":i.gameId, "moveIndex":i.moveIndex, "movePosition":i.movePosition} for i in db.session.query(Move).filter(Move.gameId == gameId).all()]
-        response["success"] = True
     except Exception as e:
         app.logger.error(e)
         response["success"] = False
@@ -226,7 +290,7 @@ def sendGameInfo():
 
 @app.route("/signup", methods=["POST"])
 def signupSubmission():
-    response = {}
+    response = {"success":True}
     try:
         # insert values to db
         db.session.add(User(request.form["username"], request.form["email"], request.form["key"], request.form["salt"]))
@@ -235,7 +299,6 @@ def signupSubmission():
         response["data"] = {}
         response["data"]["token"] = generateToken(request.form["username"])
         response["data"]["token_expires"] = int(os.environ["SESSION_TIMEOUT"]) + round(time.time())
-        response["success"] = True
     except Exception as e:
         app.logger.error(e)
         response["success"] = False
@@ -248,7 +311,8 @@ def signup():
 # just for testing stuff
 @app.route("/test", methods=["GET", "POST"])
 def test():
-    return secrets.token_hex(256//2)
+    return render_template("msg.html", request)
+    # return secrets.token_hex(256//2)
 
 # for .well-known stuff (e.g. acme-challenges for ssl-certs)
 #
@@ -268,8 +332,44 @@ if __name__ == "__main__":
     def serverUp():
         try:
             db.create_all()
+            print("database initialized")
             return True
-        except:
+        except Exception as e:
+            print("Failed to initialize")
+            print(e)
+            return False
+
+    # starts https server, returns false if failed
+    def startHttpsServer():
+        try:
+            if "CERT_DIR" not in os.environ:
+                raise ValueError("CERT_DIR not given (config in .env file)")
+            if "HTTPS_PORT" not in os.environ:
+                raise ValueError("HTTPS_PORT not given (config in .env file)")
+            sslContext = tuple([os.path.join(os.environ["CERT_DIR"], i) for i in ['cert.pem', 'privkey.pem']])
+            print("starting server with ssl on port", os.environ["HTTPS_PORT"], "ssl context=", sslContext)
+            # 0.0.0.0 => allow all adresses to have access (important for docker-environment)
+            httpsServer = WSGIServer(('0.0.0.0', int(os.environ["HTTPS_PORT"])), app, certfile=sslContext[0], keyfile=sslContext[1])
+            httpsServer.serve_forever()
+            return True
+            # app.run(host="0.0.0.0", port=os.environ["HTTPS_PORT"], ssl_context=sslContext)
+        except Exception as e:
+            print("ERROR starting server on https:", e)
+            print("starting HTTP server instead...")
+            os.environ["HTTP_PORT"] = 80 if not "HTTP_PORT" in os.environ else os.environ["HTTP_PORT"]
+            return False
+
+    # starts http server, returns false if failed
+    def startHttpServer():
+        try:
+            # 0.0.0.0 => allow all adresses to have access (important for docker-environment)
+            print("starting server without ssl on port", os.environ["HTTP_PORT"])
+            # app.run(host="0.0.0.0", port=os.environ["HTTP_PORT"])
+            httpServer = WSGIServer(('0.0.0.0', int(os.environ["HTTP_PORT"])), app)
+            httpServer.serve_forever()
+            return True
+        except Exception as e:
+            print("ERROR starting server on http:", e)
             return False
 
     app.debug = True
@@ -280,29 +380,26 @@ if __name__ == "__main__":
         print("server unreachable, waiting 5s")
         time.sleep(5)
 
+    # add bot-user for AI
+    try:
+        db.session.add(User(os.environ["BOT_USERNAME"], os.environ["BOT_EMAIL"], secrets.token_hex(256//2), secrets.token_hex(256//2)))
+        print("adding user")
+        db.session.commit()
+        print(db.session.query(User).all())
+        print("bot user added")
+    except Exception as e:
+        print(e)
+
+    try:
+        print("adding sample data")
+        addSampleData()
+    except Exception as e:
+        print(e)
+
     print("server reached and initialized, starting web-service")
     print("ssl enabled:", os.environ["ENABLE_SSL"])
-    # 0.0.0.0 => allow all adresses to have access (important for docker-environment)
-    if "ENABLE_SSL" in os.environ and os.environ["ENABLE_SSL"].upper() == "TRUE":
-        try:
-            if "CERT_DIR" not in os.environ:
-                raise ValueError("CERT_DIR not given (config in .env file)")
-            if "HTTPS_PORT" not in os.environ:
-                raise ValueError("HTTPS_PORT not given (config in .env file)")
-            sslContext = tuple([os.path.join(os.environ["CERT_DIR"], i) for i in ['cert.pem', 'privkey.pem']])
-            print("starting server with ssl on port", os.environ["HTTPS_PORT"], "ssl context=", sslContext)
-            httpsServer = WSGIServer(('0.0.0.0', int(os.environ["HTTPS_PORT"])), app, certfile=sslContext[0], keyfile=sslContext[1])
-            httpsServer.serve_forever()
-            # app.run(host="0.0.0.0", port=os.environ["HTTPS_PORT"], ssl_context=sslContext)
-        except Exception as e:
-            print("ERROR starting server on https:", e)
-            print("starting HTTP server instead...")
-            os.environ["HTTP_PORT"] = 80 if not "HTTP_PORT" in os.environ else os.environ["HTTP_PORT"]
-    
-    if "HTTP_PORT" in os.environ:
-        print("starting server without ssl on port", os.environ["HTTP_PORT"])
-        httpServer = WSGIServer(('0.0.0.0', int(os.environ["HTTP_PORT"])), app)
-        httpServer.serve_forever()
-        # app.run(host="0.0.0.0", port=os.environ["HTTP_PORT"])
+    if "ENABLE_SSL" in os.environ and os.environ["ENABLE_SSL"].upper() == "TRUE" and not startHttpsServer():
+        startHttpServer()
     else:
-        print("no server started because no ports were indicated.")
+        startHttpServer()
+    print("no server started because no ports were indicated.")

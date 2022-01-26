@@ -87,7 +87,7 @@ class Game {
 
     requestState() {
         return new Promise((resolve, reject) => {
-            $.post("/viewgame", {
+            $.post("/viewGame", {
                 gameId: this.gameId
             }, result => {
                 if (result.success) resolve(result.data);
