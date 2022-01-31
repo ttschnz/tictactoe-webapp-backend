@@ -3,6 +3,7 @@
     --color500: #0000002b;
     --color700: #0000005c;
     --lightColor100: #f9f8f8ff;
+    --lightColor200: #f0f0f0ff;
     --accentHue: 193deg;
 }
 
@@ -14,6 +15,7 @@ body {
     align-items: stretch;
     grid-template-rows: 50px 1fr;
     background-color: var(--lightColor100);
+    overflow-x: hidden;
 }
 
 header {
@@ -34,8 +36,12 @@ main {
     width: 100%;
     height: 100%;
     display: flex;
+    gap: 50px;
     justify-content: center;
     align-items: center;
+    flex-direction: column;
+    padding: 50px;
+    grid-row:2;
 }
 
 header, footer {
@@ -45,11 +51,20 @@ header, footer {
     padding: 20px;
     box-shadow: 0px 3px 3px 0 var(--color700);
     z-index: 20;
+    position: fixed;
+    right: 0;
+    left: 0;
+}
+
+header{
+    top: 0;
+    background: var(--lightColor100);
 }
 
 footer {
     padding: 5px;
     align-items: flex-end;
+    bottom: 0;
 }
 
 .tile {
@@ -73,6 +88,12 @@ footer {
     flex-direction: column;
     gap: 10px;
     position: relative;
+}
+.columns {
+    display: flex;
+    flex-direction: row;
+    position: relative;
+    justify-content: space-between;
 }
 
 form {
@@ -229,7 +250,7 @@ a > *:not(img):not(svg):hover, a > *:not(img):not(svg):focus {
     filter: opacity(0.7);
 }
 
-#gamecontainer {
+#gamecontainer, .gameThumbnail {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     height: min(calc(var(--size) * 1vw), calc(var(--size) * 1vh));
@@ -241,7 +262,9 @@ a > *:not(img):not(svg):hover, a > *:not(img):not(svg):focus {
     align-self: center;
     justify-self: center;
 }
-
+.gameThumbnail{
+    --size: 20;
+}
 .versionId {
     width: min(35vw, 360px);
     white-space: nowrap;
@@ -258,7 +281,23 @@ a > *:not(img):not(svg):hover, a > *:not(img):not(svg):focus {
 footer img, header img, header svg, footer svg {
     max-width: 50vw;
 }
-
+.tile.userinfo {
+    min-height: unset;
+}
+.userinfo span:first-child {
+    text-transform: uppercase;
+    color: hsl(var(--accentHue) 60% 45%);
+    font-weight: bold;
+}
+.userinfo span:last-child:empty{
+    background-color: var(--lightColor200);
+    height: 1em;
+    width: 100%;
+    border-radius:5px;
+}
+.userinfo span:last-child {
+    font-size:2em;
+}
 @media screen and (max-width: 300px) {
     .tile {
         padding: 5px;

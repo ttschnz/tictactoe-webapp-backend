@@ -222,4 +222,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }, "json");
     });
+    document.querySelectorAll("#userinfo").forEach((elmnt)=>{
+
+    });
+    document.querySelectorAll("#playedgames").forEach((elmnt)=>{
+
+    });
 });

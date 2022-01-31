@@ -19,9 +19,9 @@ app.config['SQLALCHEMY_ECHO'] = True
 db = SQLAlchemy(app)
 
 # proxy for default render template, passes the filename to the actual render_template fn and wether the user is signed in or not
-def render_template(fileName, request):
+def render_template(fileName, request, opts = False):
     username = checkToken(request.cookies["token"]) if "token" in request.cookies.keys() else False
-    return rt_(fileName, username=username if username else False, version=os.popen("git -C '/' log -n 1 --pretty=format:'%H'").read(), behind=os.popen("git rev-list $(git -C '/' log -n 1 --pretty=format:'%H')..HEAD | grep -c ^").read())
+    return rt_(fileName, opts=opts, username=username if username else False, version=os.popen("git -C '/' log -n 1 --pretty=format:'%H'").read(), behind=os.popen("git rev-list $(git -C '/' log -n 1 --pretty=format:'%H')..HEAD | grep -c ^").read())
 
 # checks if token is valid and returns username if so. if not, it returns False
 def checkToken(token) -> str|bool:
@@ -44,7 +44,7 @@ def generateToken(username) -> str|bool:
         return False
 
 # add sample data for testing
-def addSampleData(dataCount=20):
+def addSampleData(dataCount=5):
     userList = [f"sampleUser{i}" for i in range(dataCount)]
     # add users
     for username in userList:
@@ -218,6 +218,21 @@ def returnUserTemplate():
     return render_template("user.html.jinja", request)
 
 @app.route("/user/<username>", methods=["GET"])
+def returnUserPage(username):
+    userFound = len(db.session.query(User).filter(User.username==username).all()) > 0
+    if not userFound:
+        abort(404)
+    games = db.session.query(Game).filter(Game.attacker == username).union(db.session.query(Game).filter(Game.defender==username)).all()
+    for game in games:
+        game.moves = {}
+        moves = db.session.query(Move).filter(Move.gameId == game.gameId).all()
+        for move in moves:
+            game.moves[move.moveIndex] = move.player
+
+
+    return render_template("user.html.jinja", request, {"username":username, "games": games, "userFound": userFound})
+
+@app.route("/user/<username>", methods=["POST"])
 def returnUserInfo(username):
     response = {"success":True}
     # TODO: optimize

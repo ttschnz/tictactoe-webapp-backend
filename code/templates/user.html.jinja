@@ -1,0 +1,30 @@
+{% extends 'base.html.jinja' %}
+{% block title %}@{{opts["username"]}}{% endblock %}
+{% block main %}
+<div class="tile userinfo" id="userinfo" data-user="@{{opts["username"]}}">
+    <h1>@{{opts["username"]}}</h1>
+    <div class="columns">
+        <div class="rows">
+            <span>Games Played</span>
+            <span id="totalCount">{{opts["games"]|length}}</span>
+
+        </div>
+        <div class="rows">
+            <span>Games Won</span>
+            <span id="winsCount"></span>
+
+        </div>
+        <div class="rows">
+            <span>Streak</span>
+            <span id="streakCount"></span>
+        </div>
+    </div>
+</div>
+
+<div class="tile playedgames" id="playedgames">
+{% for game in opts["games"] %}
+    {{ forms.game(game.attacker, game.defender, game.moves, game.gameId) }}
+{% endfor %}
+</div>
+
+{% endblock %}

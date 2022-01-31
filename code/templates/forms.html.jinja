@@ -12,3 +12,16 @@
 {% macro labelledHr(label='') -%}
     <hr data-label="{{label}}" class="labelledHr">
 {%- endmacro %}
+
+{% macro game(attacker, defender, moves, gameId)%}
+    <a href="/games/{{gameId}}">
+    <div class="game columns">
+        <div class="gameThumbnail rows">
+        {% for move in moves.values() %}
+            <div class="gameTile" data-occupied-by="{{"x" if move == attacker else "o" if move == defender else "false" }}"></div>
+        {% endfor %}
+        </div>
+        <h1><a href="/user/{{attacker}}">@{{attacker}}</a> vs. <a href="/user/{{defender}}">@{{defender}}</a></h1>
+    </div>
+    </a>
+{%- endmacro %}
