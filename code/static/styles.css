@@ -220,7 +220,7 @@ a > *:not(img):not(svg):hover, a > *:not(img):not(svg):focus {
 
 .gameTile {
     background: var(--color200);
-    border-radius: 10px;
+    border-radius: calc(var(--size) * 1px / 6);
     transition: background 0.33s;
     position: relative;
 }
@@ -264,6 +264,7 @@ a > *:not(img):not(svg):hover, a > *:not(img):not(svg):focus {
 }
 .gameThumbnail{
     --size: 20;
+    gap: 3px;
 }
 .versionId {
     width: min(35vw, 360px);

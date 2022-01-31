@@ -224,7 +224,7 @@ def returnUserPage(username):
         abort(404)
     games = db.session.query(Game).filter(Game.attacker == username).union(db.session.query(Game).filter(Game.defender==username)).all()
     for game in games:
-        game.moves = {}
+        game.moves = [None]*9
         moves = db.session.query(Move).filter(Move.gameId == game.gameId).all()
         for move in moves:
             game.moves[move.moveIndex] = move.player
