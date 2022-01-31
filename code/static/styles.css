@@ -18,9 +18,6 @@ body {
     overflow-x: hidden;
 }
 
-header {
-    background: var(--color200);
-}
 
 * {
     box-sizing: border-box;
@@ -59,6 +56,7 @@ header, footer {
 header{
     top: 0;
     background: var(--lightColor100);
+    height: 50px;
 }
 
 footer {
@@ -210,7 +208,7 @@ a {
     transition: border-bottom .33s;
 }
 
-a > *:not(img):not(svg):hover, a > *:not(img):not(svg):focus {
+a > *:not(img):not(svg):not(.gameThumbnail):hover, a > *:not(img):not(svg):not(.gameThumbnail):focus {
     border-bottom: 1px solid black;
 }
 
@@ -225,7 +223,7 @@ a > *:not(img):not(svg):hover, a > *:not(img):not(svg):focus {
     position: relative;
 }
 
-.gameTile[data-occupied-by="false"]:hover, .gameTile[data-occupied-by="false"]:active {
+.gamecontainer .gameTile[data-occupied-by="false"]:hover, .gamecontainer .gameTile[data-occupied-by="false"]:active {
     background: var(--color500);
 }
 
@@ -266,6 +264,25 @@ a > *:not(img):not(svg):hover, a > *:not(img):not(svg):focus {
     --size: 20;
     gap: 3px;
 }
+.playedgames a {
+    color: hsl(var(--accentHue) 60% 35%);
+    justify-self: start;
+}
+.game.grid {
+    display: grid;
+    grid-template-columns: 80px 1fr 1fr;
+    justify-items: center;
+    align-items: center;
+}
+
+.gameState .material-icons {font-size: 3.7em;}
+
+.playedgames h1 {
+    justify-self: end;
+}
+.guestPlayer{
+    color: hsl(var(--accentHue) 0% 55%);
+}
 .versionId {
     width: min(35vw, 360px);
     white-space: nowrap;
@@ -282,8 +299,32 @@ a > *:not(img):not(svg):hover, a > *:not(img):not(svg):focus {
 footer img, header img, header svg, footer svg {
     max-width: 50vw;
 }
-.tile.userinfo {
+.tile.userinfo, .tile.playedgames {
     min-height: unset;
+    width: 100%;
+}
+.playedgames span.defender::before,
+.playedgames span.attacker::before {
+    position: absolute;
+    top:0;
+    left:0;
+    text-transform: uppercase;
+    color: hsl(var(--accentHue) 60% 45%);
+    font-weight: bold;
+    font-size:1rem;
+    transform:translateY(-100%);
+}
+
+.playedgames span.attacker::before {
+    content: "attacker";
+}
+.playedgames span.defender::before {
+    content: "defender";
+}
+
+
+.playedgames span{
+    position:relative;
 }
 .userinfo span:first-child {
     text-transform: uppercase;

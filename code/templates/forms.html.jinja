@@ -13,23 +13,35 @@
     <hr data-label="{{label}}" class="labelledHr">
 {%- endmacro %}
 
-{% macro game(attacker, defender, moves, gameId)%}
-    <div class="game columns">
-        <a href="/games/{{gameId}}">
-        <div class="gameThumbnail rows">
-        {% for move in moves %}
-            <div class="gameTile" data-occupied-by="{{"x" if move == attacker else "o" if move == defender else "false" }}"></div>
-        {% endfor %}
+{% macro game(attacker, defender, moves, gameId, state=None)%}
+    <div class="game grid">
+        <div class="gameState">
+            {% if state == 1 %}
+            <span class="material-icons" class="win">emoji_events</span>
+            {% elif state == -1 %}
+            <span class="material-icons" class="loose">clear</span>
+            {% elif state == 0 %}
+            <span class="material-icons" class="even">balance</span>
+            {% else %}
+            <span class="material-icons" class="ongoing">hourglass_empty</span>
+            {% endif %}
+
         </div>
+        <a href="/games/{{gameId}}">
+            <div class="gameThumbnail rows">
+            {% for move in moves %}
+                <div class="gameTile" data-occupied-by="{{"x" if move == attacker else "o" if move == defender else "false" }}"></div>
+            {% endfor %}
+            </div>
         </a>
         <h1>
             {%if attacker == None %}
-                guest
+                <span class="guestPlayer" class="attacker">guest</span>
             {% else %}
-                <a href="/user/{{attacker}}">@{{attacker}}</a> 
+                <a href="/user/{{attacker}}"><span class="attacker">@{{attacker}}</span></a> 
             {% endif %}
             vs. 
-            <a href="/user/{{defender}}">@{{defender}}</a>
+            <a href="/user/{{defender}}"><span class="defender">@{{defender}}</span></a>
         </h1>
     </div>
 {%- endmacro %}

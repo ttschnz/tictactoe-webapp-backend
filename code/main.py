@@ -6,6 +6,8 @@ from flask import Flask, render_template as rt_, request, jsonify, send_from_dir
 from flask_sqlalchemy import SQLAlchemy
 # serializer to transform query result to json
 from sqlalchemy_serializer import SerializerMixin
+# prettify html before send
+from flask_pretty import Prettify
 # we will use os to access enviornment variables stored in the *.env files, time for delays and json for ajax-responses
 import os, time, json, random
 import secrets
@@ -16,6 +18,8 @@ app=Flask(__name__)
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = True
 app.config["SQLALCHEMY_DATABASE_URI"] =  f"postgresql://{os.environ['POSTGRES_USER']}:{os.environ['POSTGRES_PASSWORD']}@db/tictactoe"
 app.config['SQLALCHEMY_ECHO'] = True
+# prettify app
+prettify = Prettify(app)
 db = SQLAlchemy(app)
 
 # proxy for default render template, passes the filename to the actual render_template fn and wether the user is signed in or not
@@ -42,6 +46,9 @@ def generateToken(username) -> str|bool:
         return token
     except:
         return False
+
+def determineWinner(moves):
+    return random.choice([1,0,-1,None])
 
 # add sample data for testing
 def addSampleData(dataCount=5):
@@ -72,7 +79,7 @@ class User(db.Model, SerializerMixin):
     email=db.Column(db.String(256))
     key=db.Column(db.String(256))
     salt=db.Column(db.String(256))
-
+    timestamp = db.Column(db.TIMESTAMP,server_default=db.text('CURRENT_TIMESTAMP'))
     def __init__(self, username, email, key, salt):
         if len(username) < 2:
             raise Exception("Username too short")
@@ -89,6 +96,7 @@ class Game(db.Model, SerializerMixin):
     gameKey = db.Column(db.String(32))
     attacker = db.Column(db.String(16), db.ForeignKey("users.username"))
     defender = db.Column(db.String(16), db.ForeignKey("users.username"))
+    timestamp = db.Column(db.TIMESTAMP,server_default=db.text('CURRENT_TIMESTAMP'))
     def __init__(self, player):
         # app.logger.info("game player username", player)
         self.attacker = player if player else None
@@ -106,6 +114,7 @@ class Move(db.Model, SerializerMixin):
     moveIndex = db.Column(db.Integer(), nullable=False, primary_key=True, name="moveindex")
     movePosition = db.Column(db.Integer(), nullable=False, name="moveposition")
     player = db.Column(db.String(16),db.ForeignKey("users.username"))
+    timestamp = db.Column(db.TIMESTAMP,server_default=db.text('CURRENT_TIMESTAMP'))
     def __init__(self, gameId, movePosition, player):
         self.gameId = str(gameId)
         self.player = player if player else None
@@ -222,9 +231,10 @@ def returnUserPage(username):
     userFound = len(db.session.query(User).filter(User.username==username).all()) > 0
     if not userFound:
         abort(404)
-    games = db.session.query(Game).filter(Game.attacker == username).union(db.session.query(Game).filter(Game.defender==username)).all()
+    games = db.session.query(Game).filter(Game.attacker == username).union(db.session.query(Game).filter(Game.defender==username)).order_by(db.desc(Game.gameId)).all()
     for game in games:
-        game.moves = [None]*9
+        game.moves = [False]*9
+        game.state = determineWinner(1)
         moves = db.session.query(Move).filter(Move.gameId == game.gameId).all()
         for move in moves:
             game.moves[move.moveIndex] = move.player
@@ -237,7 +247,7 @@ def returnUserInfo(username):
     response = {"success":True}
     # TODO: optimize
     try:
-        games = db.session.query(Game).filter(Game.attacker == username).union(db.session.query(Game).filter(Game.defender==username)).all()
+        games = db.session.query(Game).filter(Game.attacker == username).union(db.session.query(Game).filter(Game.defender==username)).order_by(Game.gameId).all()
         response["games"] = [game.to_dict() for game in games]
         for game in response["games"]:
             game.pop("gameKey")

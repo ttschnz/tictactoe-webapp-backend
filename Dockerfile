@@ -12,5 +12,7 @@ RUN pip install pycrypto
 RUN pip install gevent
 # query result to json
 RUN pip install SQLAlchemy-serializer
+# prettify html before send
+RUN pip install flask-pretty
 
 CMD python /code/main.py
