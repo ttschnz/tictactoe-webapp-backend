@@ -17,15 +17,14 @@
     <div class="game grid">
         <div class="gameState">
             {% if state == 1 %}
-            <span class="material-icons" class="win">emoji_events</span>
+            <span class="material-icons win">emoji_events</span>
             {% elif state == -1 %}
-            <span class="material-icons" class="loose">clear</span>
+            <span class="material-icons loose">clear</span>
             {% elif state == 0 %}
-            <span class="material-icons" class="even">balance</span>
+            <span class="material-icons even">balance</span>
             {% else %}
-            <span class="material-icons" class="ongoing">hourglass_empty</span>
+            <span class="material-icons ongoing">hourglass_empty</span>
             {% endif %}
-
         </div>
         <a href="/games/{{gameId}}">
             <div class="gameThumbnail rows">

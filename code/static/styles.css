@@ -25,7 +25,12 @@ body {
     font-family: 'Noto Sans', sans-serif;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
     font-family: 'Poppins', sans-serif;
 }
 
@@ -38,10 +43,11 @@ main {
     align-items: center;
     flex-direction: column;
     padding: 50px;
-    grid-row:2;
+    grid-row: 2;
 }
 
-header, footer {
+header,
+footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -53,7 +59,7 @@ header, footer {
     left: 0;
 }
 
-header{
+header {
     top: 0;
     background: var(--lightColor100);
     height: 50px;
@@ -87,6 +93,7 @@ footer {
     gap: 10px;
     position: relative;
 }
+
 .columns {
     display: flex;
     flex-direction: row;
@@ -141,7 +148,8 @@ button.primaryAction {
     color: hsl(var(--accentHue) 80% 100%);
 }
 
-button:hover, button:focus {
+button:hover,
+button:focus {
     background-color: hsl(var(--hue) 60% 25%);
     color: hsl(var(--accentHue) 80% 100%);
 }
@@ -208,11 +216,13 @@ a {
     transition: border-bottom .33s;
 }
 
-a > *:not(img):not(svg):not(.gameThumbnail):hover, a > *:not(img):not(svg):not(.gameThumbnail):focus {
+a>*:not(img):not(svg):not(.gameThumbnail):hover,
+a>*:not(img):not(svg):not(.gameThumbnail):focus {
     border-bottom: 1px solid black;
 }
 
-*[onclick], .gameTile:is([data-occupied-by="false"]) {
+*[onclick],
+.gameTile:is([data-occupied-by="false"]) {
     cursor: pointer;
 }
 
@@ -223,7 +233,8 @@ a > *:not(img):not(svg):not(.gameThumbnail):hover, a > *:not(img):not(svg):not(.
     position: relative;
 }
 
-.gamecontainer .gameTile[data-occupied-by="false"]:hover, .gamecontainer .gameTile[data-occupied-by="false"]:active {
+.gamecontainer .gameTile[data-occupied-by="false"]:hover,
+.gamecontainer .gameTile[data-occupied-by="false"]:active {
     background: var(--color500);
 }
 
@@ -248,7 +259,8 @@ a > *:not(img):not(svg):not(.gameThumbnail):hover, a > *:not(img):not(svg):not(.
     filter: opacity(0.7);
 }
 
-#gamecontainer, .gameThumbnail {
+#gamecontainer,
+.gameThumbnail {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     height: min(calc(var(--size) * 1vw), calc(var(--size) * 1vh));
@@ -260,14 +272,17 @@ a > *:not(img):not(svg):not(.gameThumbnail):hover, a > *:not(img):not(svg):not(.
     align-self: center;
     justify-self: center;
 }
-.gameThumbnail{
+
+.gameThumbnail {
     --size: 20;
     gap: 3px;
 }
+
 .playedgames a {
     color: hsl(var(--accentHue) 60% 35%);
     justify-self: start;
 }
+
 .game.grid {
     display: grid;
     grid-template-columns: 80px 1fr 1fr;
@@ -275,14 +290,45 @@ a > *:not(img):not(svg):not(.gameThumbnail):hover, a > *:not(img):not(svg):not(.
     align-items: center;
 }
 
-.gameState .material-icons {font-size: 3.7em;}
+.gameState .material-icons {
+    font-size: 3.7em;
+}
+
+.gameState span::before {
+    font-family: 'Noto Sans', sans-serif;
+    position: absolute;
+    text-transform: uppercase;
+    color: hsl(var(--accentHue) 60% 45%);
+    font-weight: bold;
+    font-size: 1rem;
+    transform: translate(-50%, -100%);
+    left: 50%;
+}
+
+.gameState span.ongoing::before {
+    content: "ongoing";
+}
+
+.gameState span.win::before {
+    content: "win";
+}
+
+.gameState span.loose::before {
+    content: "defeat";
+}
+
+.gameState span.even::before {
+    content: "even";
+}
 
 .playedgames h1 {
     justify-self: end;
 }
-.guestPlayer{
+
+.guestPlayer {
     color: hsl(var(--accentHue) 0% 55%);
 }
+
 .versionId {
     width: min(35vw, 360px);
     white-space: nowrap;
@@ -296,50 +342,61 @@ a > *:not(img):not(svg):not(.gameThumbnail):hover, a > *:not(img):not(svg):not(.
     content: "version: ";
 }
 
-footer img, header img, header svg, footer svg {
+footer img,
+header img,
+header svg,
+footer svg {
     max-width: 50vw;
 }
-.tile.userinfo, .tile.playedgames {
+
+.tile.userinfo,
+.tile.playedgames {
     min-height: unset;
     width: 100%;
 }
+
 .playedgames span.defender::before,
 .playedgames span.attacker::before {
     position: absolute;
-    top:0;
-    left:0;
+    top: 0;
+    left: 0;
     text-transform: uppercase;
     color: hsl(var(--accentHue) 60% 45%);
     font-weight: bold;
-    font-size:1rem;
-    transform:translateY(-100%);
+    font-size: 1rem;
+    transform: translateY(-100%);
 }
 
 .playedgames span.attacker::before {
     content: "attacker";
 }
+
 .playedgames span.defender::before {
     content: "defender";
 }
 
 
-.playedgames span{
-    position:relative;
+.playedgames span {
+    position: relative;
 }
+
 .userinfo span:first-child {
     text-transform: uppercase;
     color: hsl(var(--accentHue) 60% 45%);
     font-weight: bold;
 }
-.userinfo span:last-child:empty{
+
+.userinfo span:last-child:empty {
     background-color: var(--lightColor200);
     height: 1em;
     width: 100%;
-    border-radius:5px;
+    border-radius: 5px;
 }
+
 .userinfo span:last-child {
-    font-size:2em;
+    font-size: 2em;
 }
+
 @media screen and (max-width: 300px) {
     .tile {
         padding: 5px;
@@ -350,12 +407,14 @@ footer img, header img, header svg, footer svg {
         min-height: auto;
         box-shadow: none;
     }
-    .titleRow{
+
+    .titleRow {
         flex-direction: column;
         padding: 0;
-        word-break:break-all
+        word-break: break-all
     }
-    .titleRow .tictactoeLogo{
-        display:none;
+
+    .titleRow .tictactoeLogo {
+        display: none;
     }
 }
