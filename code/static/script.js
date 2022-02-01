@@ -60,10 +60,10 @@ class Game {
         tile.dataset.occupiedBy="false";
         tile.dataset.x=coords["x"];
         tile.dataset.y=coords["y"];
-        tile.addEventListener("click", (()=>{
+        tile.addEventListener("click", (async ()=>{
             if(tile.dataset.occupiedBy=="false"){
                 console.log(coords)
-                this.makeMove(Number(coords.x)+(Number(coords.y)*3));
+                await this.makeMove(Number(coords.x)+(Number(coords.y)*3));
                 this.render();
             }
         }).bind(this))

@@ -120,6 +120,7 @@ class Game(db.Model, SerializerMixin):
         # only set key if not with an account
         self.gameKey = hex(random.randrange(16**32))[2:] if not player else None
 
+    # transforms the game-id (int) to a hex-string
     def idToHexString(self, length=6):
         return ("0" * length + hex(self.gameId)[2:])[-6:]
 
