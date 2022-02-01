@@ -29,6 +29,7 @@
         <a href="/games/{{gameId}}">
             <div class="gameThumbnail rows">
             {% for move in moves %}
+            <!-- {{moves}} -->
                 <div class="gameTile" data-occupied-by="{{"x" if move == attacker else "o" if move == defender else "false" }}"></div>
             {% endfor %}
             </div>

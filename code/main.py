@@ -9,9 +9,16 @@ from sqlalchemy_serializer import SerializerMixin
 # prettify html before send
 from flask_pretty import Prettify
 # we will use os to access enviornment variables stored in the *.env files, time for delays and json for ajax-responses
-import os, time, json, random
+import os, time, json, random, sys
 import secrets
-from datetime import datetime 
+# for debugging
+import traceback
+from datetime import datetime
+
+# add RL-A to importable 
+sys.path.insert(0, '/code/RL-A/')
+from TTTsolver import TicTacToeSolver, boardify
+solver = TicTacToeSolver("policy_3_3_x.pkl","policy_3_3_o.pkl").solveState
 
 # initialize flask application with template_folder pointed to public_html (relative to this file)
 app=Flask(__name__)
@@ -47,7 +54,7 @@ def generateToken(username) -> str|bool:
     except:
         return False
 
-def determineWinner(moves):
+def determineWinner(moves):    
     return random.choice([1,0,-1,None])
 
 # add sample data for testing
@@ -71,6 +78,13 @@ def addSampleData(dataCount=5):
             db.session.add(Move(game.gameId, i, game.attacker if i % 2 == 0 else os.environ["BOT_USERNAME"]))
         db.session.commit()  
     return
+
+def getBoard(gameId):
+    board = [False]*9
+    moves = db.session.query(Move).filter(Move.gameId == gameId).all()
+    for move in moves:
+        board[move.movePosition] = move.player
+    return board
 
 # table to store users and their password to
 class User(db.Model, SerializerMixin):
@@ -96,6 +110,8 @@ class Game(db.Model, SerializerMixin):
     gameKey = db.Column(db.String(32))
     attacker = db.Column(db.String(16), db.ForeignKey("users.username"))
     defender = db.Column(db.String(16), db.ForeignKey("users.username"))
+    winner = db.Column(db.String(16), db.ForeignKey("users.username"))
+    gameFinished = db.Column(db.Boolean(), default=False, nullable=False)
     timestamp = db.Column(db.TIMESTAMP,server_default=db.text('CURRENT_TIMESTAMP'))
     def __init__(self, player):
         # app.logger.info("game player username", player)
@@ -143,9 +159,9 @@ class Move(db.Model, SerializerMixin):
         # note: if the games player is none, "bot" is the defender (played as guest, therefore attacking)
         game = db.session.query(Game).filter(Game.gameId == self.gameId).all()[0]
         if self.moveIndex % 2 == 1 and game.attacker == self.player: # even and player is not the attacker
-            raise ValueError(f"player {self.player} is not allowed to make move #{self.movePosition}")
+            raise ValueError(f"player {self.player} is not allowed to make move #{self.moveIndex}")
         if self.moveIndex % 2 == 0 and game.defender == self.player: # odd and player is not the defender
-            raise ValueError(f"player {self.player} is not allowed to make move #{self.movePosition}")
+            raise ValueError(f"player {self.player} is not allowed to make move #{self.moveIndex}")
         return True
 
 # table to store sessionKeys to (=tokens). Tokens allow faster and more secure authentication
@@ -237,7 +253,7 @@ def returnUserPage(username):
         game.state = determineWinner(1)
         moves = db.session.query(Move).filter(Move.gameId == game.gameId).all()
         for move in moves:
-            game.moves[move.moveIndex] = move.player
+            game.moves[move.movePosition] = move.player
 
 
     return render_template("user.html.jinja", request, {"username":username, "games": games, "userFound": userFound})
@@ -293,12 +309,22 @@ def makeMove():
 
         if not len(entries) == 1:
             raise ValueError("no entries found")
-        
+
         game = entries[0]
         db.session.add(Move(game.gameId, int(request.form["movePosition"]), username))
         db.session.commit()
+
+        # played as guest, therefore playing vs. bot, calling bot for solution
+        if gameKey:
+            board = [1 if name==username else 0 if name==False else -1 for name in  getBoard(game.gameId)]
+            app.logger.info(board)
+            solution = solver(boardify(",".join(map(str,board))), "defender")
+            # 2d index to 1d => x + y*3 (counting from 0)
+            db.session.add(Move(game.gameId, solution[1]+solution[0]*3, os.environ["BOT_USERNAME"]))
+            db.session.commit()
     except Exception as e:
-        app.logger.error(e)
+        app.logger.error("ERROR makeMove")
+        app.logger.error(traceback.format_exc())
         response["success"] = False
     return json.dumps(response)
 
@@ -307,7 +333,7 @@ def sendGameInfo():
     response = {"success":True}
     try:
         gameId = int("0x" + request.form["gameId"], 16)
-        response["data"] = [{"gameId":i.gameId, "moveIndex":i.moveIndex, "movePosition":i.movePosition} for i in db.session.query(Move).filter(Move.gameId == gameId).all()]
+        response["data"] = [{"gameId":i.gameId, "moveIndex":i.moveIndex, "movePosition":i.movePosition, "player": i.player} for i in db.session.query(Move).filter(Move.gameId == gameId).all()]
     except Exception as e:
         app.logger.error(e)
         response["success"] = False
@@ -336,7 +362,11 @@ def signup():
 # just for testing stuff
 @app.route("/test", methods=["GET", "POST"])
 def test():
-    return render_template("msg.html", request)
+    board = boardify(request.form["board"])
+    solution = solver(board, request.form["role"])
+    return json.dumps(solution)
+    # return render_template("msg.html", request)
+
     # return secrets.token_hex(256//2)
 
 # for .well-known stuff (e.g. acme-challenges for ssl-certs)
@@ -428,3 +458,4 @@ if __name__ == "__main__":
     else:
         startHttpServer()
     print("no server started because no ports were indicated.")
+    

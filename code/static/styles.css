@@ -285,7 +285,7 @@ a>*:not(img):not(svg):not(.gameThumbnail):focus {
 
 .game.grid {
     display: grid;
-    grid-template-columns: 80px 1fr 1fr;
+    grid-template-columns: 120px 1fr 1fr;
     justify-items: center;
     align-items: center;
 }

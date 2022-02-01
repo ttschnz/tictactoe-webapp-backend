@@ -41,7 +41,7 @@ class Game {
             let x = i.movePosition%3;
             let y = Math.floor(i.movePosition/3);
             console.log({x,y});
-            this.tiles[x][y].dataset.occupiedBy="x";
+            this.tiles[x][y].dataset.occupiedBy=i.player == null ? "x" : "o";
         }
     }
 
@@ -215,7 +215,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.success) {
                 let game = new Game(response.data.gameId, response.data.gameKey ?? false, username, elmnt);
                 elmnt.game = game;
-                await game.makeMove(0);
                 await game.render();
             } else {
                 console.error("error starting new game");

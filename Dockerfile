@@ -14,5 +14,9 @@ RUN pip install gevent
 RUN pip install SQLAlchemy-serializer
 # prettify html before send
 RUN pip install flask-pretty
+# debugging
+# RUN pip install traceback
+# numpy for RL-A
+RUN pip install numpy
 
 CMD python /code/main.py
