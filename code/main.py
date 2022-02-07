@@ -24,7 +24,7 @@ solver = TicTacToeSolver("policy_3_3_x.pkl","policy_3_3_o.pkl").solveState
 app=Flask(__name__)
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = True
 app.config["SQLALCHEMY_DATABASE_URI"] =  f"postgresql://{os.environ['POSTGRES_USER']}:{os.environ['POSTGRES_PASSWORD']}@db/tictactoe"
-app.config['SQLALCHEMY_ECHO'] = True
+# app.config['SQLALCHEMY_ECHO'] = True
 # prettify app
 prettify = Prettify(app)
 db = SQLAlchemy(app)
@@ -33,58 +33,6 @@ db = SQLAlchemy(app)
 def render_template(fileName, request, opts = False):
     username = checkToken(request.cookies["token"]) if "token" in request.cookies.keys() else False
     return rt_(fileName, opts=opts, username=username if username else False, version=os.popen("git -C '/' log -n 1 --pretty=format:'%H'").read(), behind=os.popen("git rev-list $(git -C '/' log -n 1 --pretty=format:'%H')..HEAD | grep -c ^").read())
-
-# checks if token is valid and returns username if so. if not, it returns False
-def checkToken(token) -> str|bool:
-    app.logger.debug("-----------------------")
-    app.logger.debug(db.session.query(Session).all()[0].sessionStart)
-    matchingEntries = db.session.query(Session).filter(Session.sessionKey==token).filter(Session.sessionStart < datetime.utcfromtimestamp(round(time.time()) + int(os.environ["SESSION_TIMEOUT"]))).all()
-    return matchingEntries[0].username if len(matchingEntries) == 1 else False
-
-# generates a token for a user, inserts it to the db and returns the token. False if failed
-def generateToken(username) -> str|bool:
-    try:
-        token = secrets.token_hex(256//2)
-        app.logger.debug("SESSION:")
-        app.logger.debug(Session(username, token))
-        app.logger.debug("-----------------------")
-        db.session.add(Session(username, token))
-        db.session.commit()
-        return token
-    except:
-        return False
-
-def determineWinner(moves):    
-    return random.choice([1,0,-1,None])
-
-# add sample data for testing
-def addSampleData(dataCount=5):
-    userList = [f"sampleUser{i}" for i in range(dataCount)]
-    # add users
-    for username in userList:
-        db.session.add(User(username, f"emailof@{username}.localhost",secrets.token_hex(256//2),secrets.token_hex(256//2)))
-    db.session.commit()
-    
-    # add games
-    for _ in range(dataCount**2):
-        game = Game(random.choice(userList))
-        db.session.add(game)
-        db.session.flush()
-        db.session.refresh(game)
-        db.session.commit()  
-        # add moves 
-        for i in range(9):
-            print(i,game.attacker if i % 2 == 0 else os.environ["BOT_USERNAME"])
-            db.session.add(Move(game.gameId, i, game.attacker if i % 2 == 0 else os.environ["BOT_USERNAME"]))
-        db.session.commit()  
-    return
-
-def getBoard(gameId):
-    board = [False]*9
-    moves = db.session.query(Move).filter(Move.gameId == gameId).all()
-    for move in moves:
-        board[move.movePosition] = move.player
-    return board
 
 # table to store users and their password to
 class User(db.Model, SerializerMixin):
@@ -103,6 +51,29 @@ class User(db.Model, SerializerMixin):
         self.key=key
         self.salt=salt
 
+    @staticmethod
+    def authorize(username, key):
+        return db.session.query(User).filter(User.username==username,User.key==key).count()==1
+
+    @staticmethod
+    def authorizeRequest(request):
+        return User.authorize(request.form["username"], request.form["key"])
+    
+    @staticmethod
+    def find(username):
+        return db.session.query(User).filter(User.username==username)
+
+    @staticmethod
+    def generateFromRequest(request):
+        user = User(request.form["username"], request.form["email"], request.form["key"], request.form["salt"])
+        db.session.add(user)
+        db.session.commit()
+        db.session.refresh(user)
+        return user
+    
+    def getGames(self):
+        return db.session.query(Game).filter(Game.attacker == username).union(db.session.query(Game).filter(Game.defender==username)).order_by(db.desc(Game.gameId)).all()
+
 # table to store games and their players to
 class Game(db.Model, SerializerMixin):
     __tablename__ = "games"
@@ -113,6 +84,8 @@ class Game(db.Model, SerializerMixin):
     winner = db.Column(db.String(16), db.ForeignKey("users.username"))
     gameFinished = db.Column(db.Boolean(), default=False, nullable=False)
     timestamp = db.Column(db.TIMESTAMP,server_default=db.text('CURRENT_TIMESTAMP'))
+    ONGOING=0
+    FINISHED=1
     def __init__(self, player):
         # app.logger.info("game player username", player)
         self.attacker = player if player else None
@@ -123,6 +96,69 @@ class Game(db.Model, SerializerMixin):
     # transforms the game-id (int) to a hex-string
     def idToHexString(self, length=6):
         return ("0" * length + hex(self.gameId)[2:])[-6:]
+
+    # returns all moves associated with this game
+    def getMoves(self):
+        return db.session.query(Moves).filter(Moves.gameId == self.gameId).all()
+
+    # returns game field in one-dimensional array with {attacker:1, defender:-1, empty:0}
+    def getGameField(self):
+        moves = self.getMoves()
+        field = [0]*9
+        for move in moves:
+            if move.player == self.attacker:
+                field[move.movePosition] = 1 
+            else:
+                field[move.movePosition] = -1
+
+    def getNumpyGameField(self):
+        field = np.empty(9, dtype="float64")
+        field[:] = self.getGameField()
+        return field
+
+    def getGameInfo(self):
+        info = {}
+        info["attacker"] = self.attacker
+        info["defender"] = self.defender
+        info["gameId"] = self.gameId
+        info["winner"] = self.getWinner()
+        info["gameField"] = self.getGameField()
+        info["state"] = self.getGameState()
+
+    # gets the winner of game (string), None if even, False if ongoing
+    def getWinner(self):
+        return random.choice([self.attacker, self.defender, None, False])
+
+    # returns state of game => Game.ONGOING | Game.FINISHED
+    def getGameState(self):
+        return self.ONGOING if self.getWinner == None else self.FINISHED
+
+    def toResponse(self):
+        response = {"data":{}}
+        response["data"]["_gameId"] = self.gameId
+        response["data"]["gameId"] = self.idToHexString()
+        response["success"]=True
+        if not (self.attacker and self.defender):
+            response["data"]["gameKey"] = self.gameKey
+    
+    def authenticate(self, username, gameKey):
+        return self.attacker == username or self.defender == username or self.gameKey == gamekey
+
+    @staticmethod
+    def find(gameId):
+        return db.session.query(Game).filter(Game.gameId == gameId).one()
+
+    @staticmethod
+    def findByHex(gameId):
+        return Game.find(int("0x" + gameId, 16))
+
+    @staticmethod
+    def createWithUser(username):
+        game = Game(username)
+        db.session.add(game)
+        db.session.commit()
+        db.session.refresh(game)
+        return game
 
 # table to store moves to
 class Move(db.Model, SerializerMixin):
@@ -165,6 +201,15 @@ class Move(db.Model, SerializerMixin):
             raise ValueError(f"player {self.player} is not allowed to make move #{self.moveIndex}")
         return True
 
+    @staticmethod
+    def fromXY(coords, user, gameId):
+        # 2d index to 1d => x + y*3 (counting from 0)
+        move = Move(gameId, coords["x"]+coords["y"]*3, user)
+        db.session.add(move)
+        db.session.commit()
+        db.session.refresh(move)
+        return move
+
 # table to store sessionKeys to (=tokens). Tokens allow faster and more secure authentication
 class Session(db.Model, SerializerMixin):
     __tablename__ = "sessions"
@@ -175,43 +220,52 @@ class Session(db.Model, SerializerMixin):
     def __init__(self, username, sessionKey):
         self.username= username
         self.sessionKey = sessionKey
+    
+    @staticmethod
+    def generateToken(username):
+        try:
+            instance = Session(username, secrets.token_hex(256//2))
+            db.session.add(instance)
+            db.session.commit()
+            return instance
+        except Exception as e:
+            app.logger.error(e)
+            return False
+
+    @staticmethod
+    def find(sessionKey):
+        db.session.query(Session).filter(Session.sessionKey==sessionKey)
+        pass
+
+    @staticmethod
+    def authenticateRequest(request):
+        session = Session.find(request.cookies["token"]).one() if "token" in request.cookies.keys() else None
+        return session.username if session else None
+
+    def toResponse(self):
+        response = {"success":True}
+        response["data"] = {}
+        response["data"]["token"] = self.token
+        response["data"]["token_expires"] = self.getExpiration()
+        return response
+
+    def getExpiration(self):
+        db.session.refresh(self)
+        return int(os.environ["SESSION_TIMEOUT"]) + self.sessionStart
+
 
 @app.route("/")
 def index():
     return render_template("index.html.jinja", request)
 
+# authentication
 @app.route("/getsalt", methods=["POST"])
 def getsalt():
     # returns salt for keygeneration of demanded user
     response = {"success":True}
     try:
-        users = db.session.query(User).filter(User.username==request.form["username"])
-        # only return if 1 user has been found (since username is UNIQUE, it should only be 1 or 0)
-        if(users.count()==1):
-            response["data"] = users[0].salt
-        else:
-            response["success"] = False
-    except:
-        response["success"] = False
-    return json.dumps(response)
-
-
-@app.route("/login", methods=["POST"])
-def loginSubmission():
-    response = {"success":True}
-    try:
-        # check if username and password match
-        isAuthorized = db.session.query(User).filter(User.username==request.form["username"],User.key==request.form["key"]).count()==1
-        response["success"] = isAuthorized
-        # if they match, return a token
-        if isAuthorized:
-            token = generateToken(request.form["username"])
-            if token:
-                response["data"] = {}
-                response["data"]["token"] = token
-                response["data"]["token_expires"] = int(os.environ["SESSION_TIMEOUT"]) + round(time.time())
-            else:
-                response["success"] = False
+        user = User.find(request.form["username"]).one()
+        response["data"] = user.salt
     except:
         response["success"] = False
     return json.dumps(response)
@@ -220,6 +274,32 @@ def loginSubmission():
 def login():
     return render_template("login.html.jinja", request)
 
+@app.route("/login", methods=["POST"])
+def loginSubmission():
+    try:
+        # check if users credentials match and generate a token
+        response = Session.generateToken(request.form["username"]).toResponse() if User.authorize(request.form) else {"success":False}
+    except:
+        response = {"success": False}
+    return json.dumps(response)
+
+@app.route("/signup", methods=["GET"])
+def signup():
+    return render_template("signup.html.jinja", request)
+
+@app.route("/signup", methods=["POST"])
+def signupSubmission():
+    try:
+        # create user
+        user = User.generateFromRequest(request)
+        # generate a token
+        response = Session.generateToken(user.username).toResponse()
+    except Exception as e:
+        app.logger.error(e)
+        response = {"success": False}
+    return json.dumps(response)
+
+# playing game
 @app.route("/game", methods=["GET"])
 def returnGameTemplate():
     return render_template("game.html.jinja", request)
@@ -228,12 +308,9 @@ def returnGameTemplate():
 def returnGameInfo(gameId):
     response = {"success":True}
     try:
-        game = db.session.query(Game).filter(Game.gameId == gameId).all()[0]
-        response["game"] = {"gameId":game.gameId, "gameKey":game.gameKey, "attacker":game.attacker, "defender":game.defender}
-        moves = db.session.query(Move).filter(Move.gameId == gameId).all()
-        response["moves"] = []
-        for move in moves:
-            response["moves"].append({"position":move.movePosition, "player":move.player, "moveIndex": move.moveIndex})
+        game = Game.find(gameId)
+        response["game"] = game.to_dict()
+        response["moves"] = game.getMoves()
     except Exception as e:
         response["success"] = False
         app.logger.error(e)
@@ -245,120 +322,64 @@ def returnUserTemplate():
 
 @app.route("/user/<username>", methods=["GET"])
 def returnUserPage(username):
-    userFound = len(db.session.query(User).filter(User.username==username).all()) > 0
-    if not userFound:
+    user = User.find(username).one()
+    if not user:
         abort(404)
-    games = db.session.query(Game).filter(Game.attacker == username).union(db.session.query(Game).filter(Game.defender==username)).order_by(db.desc(Game.gameId)).all()
-    for game in games:
-        game.moves = [False]*9
-        game.state = determineWinner(1)
-        moves = db.session.query(Move).filter(Move.gameId == game.gameId).all()
-        for move in moves:
-            game.moves[move.movePosition] = move.player
-
-
-    return render_template("user.html.jinja", request, {"username":username, "games": games, "userFound": userFound})
-
-@app.route("/user/<username>", methods=["POST"])
-def returnUserInfo(username):
-    response = {"success":True}
-    # TODO: optimize
-    try:
-        games = db.session.query(Game).filter(Game.attacker == username).union(db.session.query(Game).filter(Game.defender==username)).order_by(Game.gameId).all()
-        response["games"] = [game.to_dict() for game in games]
-        for game in response["games"]:
-            game.pop("gameKey")
-            moves = db.session.query(Move).filter(Move.gameId == game["gameId"]).all()
-            game["moves"] = [move.to_dict() for move in moves]
-        return json.dumps(response)
-    except Exception as e:
-        app.logger.error(e)
-        return json.dumps({"success":False})
+    games = []
+    for game in user.getGames():
+        games.append(game.getGameInfo())
+    return render_template("user.html.jinja", request, {"user":user, "games": games})
 
 @app.route("/startNewGame", methods=["POST"])
 def startNewGame():
-    response = {"success":True}
     try:
-        username = checkToken(request.cookies["token"]) if "token" in request.cookies.keys() else None
-        game = Game(username)
-        db.session.add(game)
-        db.session.flush()
-        db.session.refresh(game)
-        db.session.commit()
-        response["data"] = {}
-        response["data"]["_gameId"] = game.gameId
-        response["data"]["gameId"] = game.idToHexString()
-        if not username:
-            response["data"]["gameKey"] = game.gameKey
+        username = Session.authenticateRequest(request)
+        game = Game.createWithUser(username)
+        response = game.toResponse()
+        return json.dumps(response)
     except Exception as e:
         app.logger.error(e)
-        response["success"] = False
-    return json.dumps(response)
+        response={"success": False}
+        return json.dumps(response)
 
 @app.route("/makeMove", methods=["POST"])
 def makeMove():
-    response = {"success":True}
+    
     try:
-        username = checkToken(request.cookies["token"]) if "token" in request.cookies.keys() else None
-        app.logger.info(username)
-        gameId = int("0x" + request.form["gameId"], 16)
-        app.logger.info(gameId)
+        game = Game.findByHex(request.form["gameId"])
+        username = Session.authenticateRequest(request)
         gameKey = request.form["gameKey"] if "gameKey" in request.form else None
-        app.logger.info(gameKey)
-        entries = db.session.query(Game).filter(Game.attacker == username).union(db.session.query(Game).filter(Game.defender == username)).filter(Game.gameId == gameId).all() if username else db.session.query(Game).filter(Game.gameKey == gameKey).filter(Game.gameId == gameId).filter(Game.attacker == None).all()
-        app.logger.info(entries)
 
-        if not len(entries) == 1:
+        if not game.authenticate(username, gameKey):
             raise ValueError("no entries found")
 
-        game = entries[0]
         db.session.add(Move(game.gameId, int(request.form["movePosition"]), username))
         db.session.commit()
 
-        # played as guest, therefore playing vs. bot, calling bot for solution
-        if gameKey:
-            board = [1 if name==username else 0 if name==False else -1 for name in  getBoard(game.gameId)]
-            app.logger.info(board)
-            solution = solver(boardify(",".join(map(str,board))), "defender")
-            # 2d index to 1d => x + y*3 (counting from 0)
-            db.session.add(Move(game.gameId, solution[1]+solution[0]*3, os.environ["BOT_USERNAME"]))
-            db.session.commit()
+        # if gameKey is set user played as guest and therefore playing vs. bot
+        # => calling bot for his move
+        # but only if game is not finished
+        if gameKey and game.getGameState() == Game.ONGOING:
+            solution = solver(game.getNumpyGameField(), "defender")
+            move = Move.fromXY({"y":solution[0], "x":solution[1]},os.environ["BOT_USERNAME"], game.gameId)
+        response = {"success": True}
+
     except Exception as e:
-        app.logger.error("ERROR makeMove")
         app.logger.error(traceback.format_exc())
-        response["success"] = False
+        response = {"success": False}
+
     return json.dumps(response)
 
-@app.route("/viewGame", methods=["POST"])
-def sendGameInfo():
-    response = {"success":True}
-    try:
-        gameId = int("0x" + request.form["gameId"], 16)
-        response["data"] = [{"gameId":i.gameId, "moveIndex":i.moveIndex, "movePosition":i.movePosition, "player": i.player} for i in db.session.query(Move).filter(Move.gameId == gameId).all()]
-    except Exception as e:
-        app.logger.error(e)
-        response["success"] = False
-    return json.dumps(response)
-
-@app.route("/signup", methods=["POST"])
-def signupSubmission():
-    response = {"success":True}
-    try:
-        # insert values to db
-        db.session.add(User(request.form["username"], request.form["email"], request.form["key"], request.form["salt"]))
-        db.session.commit()
-        # generate a token
-        response["data"] = {}
-        response["data"]["token"] = generateToken(request.form["username"])
-        response["data"]["token_expires"] = int(os.environ["SESSION_TIMEOUT"]) + round(time.time())
-    except Exception as e:
-        app.logger.error(e)
-        response["success"] = False
-    return json.dumps(response)
-
-@app.route("/signup", methods=["GET"])
-def signup():
-    return render_template("signup.html.jinja", request)
+# @app.route("/viewGame", methods=["POST"])
+# def sendGameInfo():
+#     response = {"success":True}
+#     try:
+#         gameId = int("0x" + request.form["gameId"], 16)
+#         response["data"] = [{"gameId":i.gameId, "moveIndex":i.moveIndex, "movePosition":i.movePosition, "player": i.player} for i in db.session.query(Move).filter(Move.gameId == gameId).all()]
+#     except Exception as e:
+#         app.logger.error(e)
+#         response["success"] = False
+#     return json.dumps(response)
 
 # just for testing stuff
 @app.route("/test", methods=["GET", "POST"])
@@ -384,6 +405,28 @@ def robots():
 
 # only debug if not as module
 if __name__ == "__main__":    
+    # add sample data for testing
+    def addSampleData(dataCount=5):
+        userList = [f"sampleUser{i}" for i in range(dataCount)]
+        # add users
+        for username in userList:
+            db.session.add(User(username, f"emailof@{username}.localhost",secrets.token_hex(256//2),secrets.token_hex(256//2)))
+        db.session.commit()
+        
+        # add games
+        for _ in range(dataCount**2):
+            game = Game(random.choice(userList))
+            db.session.add(game)
+            db.session.flush()
+            db.session.refresh(game)
+            db.session.commit()  
+            # add moves 
+            for i in range(9):
+                print(i,game.attacker if i % 2 == 0 else os.environ["BOT_USERNAME"])
+                db.session.add(Move(game.gameId, i, game.attacker if i % 2 == 0 else os.environ["BOT_USERNAME"]))
+            db.session.commit()  
+        return
+
     # returns true if server is reachable
     def serverUp():
         try:

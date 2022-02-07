@@ -23,7 +23,7 @@
 
 <div class="tile playedgames" id="playedgames">
 {% for game in opts["games"] %}
-    {{ forms.game(game.attacker, game.defender, game.moves, game.gameId, game.state) }}
+    {{ forms.game(game.attacker, game.defender, game.gameField, game.gameId, game.state, game.winner) }}
 {% endfor %}
 </div>
 
