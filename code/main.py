@@ -254,9 +254,11 @@ class Session(db.Model, SerializerMixin):
         return int(os.environ["SESSION_TIMEOUT"]) + self.sessionStart
 
 
-@app.route("/")
-def index():
-    return render_template("index.html.jinja", request)
+# return appLoader.html on all GET requests
+@app.route('/', defaults={'path': ''}, methods=["GET"])
+@app.route('/<path:path>', methods=["GET"])
+def appLoader(path):
+    return send_from_directory('static', "appLoader.html")
 
 # authentication
 @app.route("/getsalt", methods=["POST"])
@@ -270,10 +272,6 @@ def getsalt():
         response["success"] = False
     return json.dumps(response)
 
-@app.route("/login", methods=["GET"])
-def login():
-    return render_template("login.html.jinja", request)
-
 @app.route("/login", methods=["POST"])
 def loginSubmission():
     try:
@@ -282,10 +280,6 @@ def loginSubmission():
     except:
         response = {"success": False}
     return json.dumps(response)
-
-@app.route("/signup", methods=["GET"])
-def signup():
-    return render_template("signup.html.jinja", request)
 
 @app.route("/signup", methods=["POST"])
 def signupSubmission():
@@ -299,12 +293,7 @@ def signupSubmission():
         response = {"success": False}
     return json.dumps(response)
 
-# playing game
-@app.route("/game", methods=["GET"])
-def returnGameTemplate():
-    return render_template("game.html.jinja", request)
-
-@app.route("/game/<gameId>", methods=["GET"])
+@app.route("/game/<gameId>", methods=["POST"])
 def returnGameInfo(gameId):
     response = {"success":True}
     try:
@@ -316,11 +305,7 @@ def returnGameInfo(gameId):
         app.logger.error(e)
     return json.dumps(response)
 
-@app.route("/user", methods=["GET"])
-def returnUserTemplate():
-    return render_template("user.html.jinja", request)
-
-@app.route("/user/<username>", methods=["GET"])
+@app.route("/user/<username>", methods=["POST"])
 def returnUserPage(username):
     user = User.find(username).one()
     if not user:
@@ -328,7 +313,7 @@ def returnUserPage(username):
     games = []
     for game in user.getGames():
         games.append(game.getGameInfo())
-    return render_template("user.html.jinja", request, {"user":user, "games": games})
+    return json.dumps({"user":user, "games": games})
 
 @app.route("/startNewGame", methods=["POST"])
 def startNewGame():
@@ -384,9 +369,9 @@ def makeMove():
 # just for testing stuff
 @app.route("/test", methods=["GET", "POST"])
 def test():
-    board = boardify(request.form["board"])
-    solution = solver(board, request.form["role"])
-    return json.dumps(solution)
+    # board = boardify(request.form["board"])
+    # solution = solver(board, request.form["role"])
+    return json.dumps({"success":True})
     # return render_template("msg.html", request)
 
     # return secrets.token_hex(256//2)
@@ -405,8 +390,13 @@ def robots():
 
 # only debug if not as module
 if __name__ == "__main__":    
+    # compile ts to js
+    print("compiling...")
+    print(os.popen("tsc --project /code/tsconfig.json").read())
+    print("done compiling")
+
     # add sample data for testing
-    def addSampleData(dataCount=5):
+    def addSampleData(dataCount=0):
         userList = [f"sampleUser{i}" for i in range(dataCount)]
         # add users
         for username in userList:
