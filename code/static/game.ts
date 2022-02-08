@@ -3,7 +3,7 @@ import { BasicElement, Container } from "./elements.js";
 export class TicTacToeGame {
     attacker={icon:"x", number:1};
     defender={icon:"o", number:-1};
-    iconMap = {"1":"x", "x":"1", "o":"-1", "-1":"o", "0":"false", "false":"0", "undefined":"0"}
+    iconMap = {"1":"x", "x":"1", "o":"-1", "-1":"o", "0":"false", "false":"0"}
     /**
      * Represents an existing game, to create call TicTacToeGame.createNew()
      * @param gameId ID of Game
@@ -100,7 +100,7 @@ export class TicTacToeGameTile extends BasicElement{
         this.game = game;
     }
     renderData(data:Number[][]){
-        if(data[this.y] && data[this.x]) this.element.dataset.occupiedBy = this.game.iconMap[String(data[this.y][this.x])]
+        if(data[this.y] && data[this.x]) this.element.dataset.occupiedBy = this.game.iconMap[String(data[this.y][this.x])] ?? false;
     }
 }
 
