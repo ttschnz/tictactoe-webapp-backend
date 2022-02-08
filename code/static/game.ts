@@ -1,5 +1,5 @@
 import WebApp from "./webapp";
-import { BasicElement, Container } from "./elements.js";
+import { BasicElement, Container, Span } from "./elements.js";
 export class TicTacToeGame {
     attacker={icon:"x", number:1};
     defender={icon:"o", number:-1};
@@ -11,7 +11,8 @@ export class TicTacToeGame {
      * @param authenticator instance of Authenticator to authenticate requests, only used for unfinished games
      * @param _gameData 
      */
-    constructor(public gameId: string, private app: WebApp, public renderTarget:TicTacToeGameContainer,public authenticator ? : Authenticator, private _gameData:Number[][]=Array(3).fill(0).map(x => Array(3).fill(null))) {
+    constructor(public gameId: string, private app: WebApp, public renderTarget:TicTacToeGameContainer,public infoTarget:Container, public authenticator ? : Authenticator, private _gameData:Number[][]=Array(3).fill(0).map(x => Array(3).fill(null))) {
+        this.infoTarget.element.appendChild(new Span(this.gameId).element);
         this.refreshState();
     }
 
@@ -30,9 +31,9 @@ export class TicTacToeGame {
         this.renderTarget.renderData(this.gameData);
     }
 
-    public static async createNew(app:WebApp, renderTarget:TicTacToeGameContainer):Promise<TicTacToeGame>{
+    public static async createNew(app:WebApp, renderTarget:TicTacToeGameContainer, infoTarget:Container):Promise<TicTacToeGame>{
         let response = await app.api("/startNewGame", {});
-        if(response.success) return new TicTacToeGame(response.data.gameId, app,renderTarget, Authenticator.fromGameKey(response.data.gameKey));
+        if(response.success) return new TicTacToeGame(response.data.gameId, app,renderTarget,infoTarget, Authenticator.fromGameKey(response.data.gameKey), );
         else app.showError("Game data could not be refreshed", {
             retry: TicTacToeGame.createNew.bind(undefined, app)
         });

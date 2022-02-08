@@ -22,6 +22,7 @@ export class BasicElement {
         return app
     }
 }
+
 export class ClickableElmnt extends BasicElement {
     constructor(public label: string | HTMLElement |BasicElement, public action: State | Function, tagName: string = "div") {
         super(tagName);
@@ -239,5 +240,11 @@ export class Warning extends FlexContainer {
     callFn(callback:Function){
         this.close()
         callback();
+    }
+}
+export class Span extends BasicElement{
+    constructor(content:string){
+        super("span");
+        this.element.appendChild(document.createTextNode(content));
     }
 }

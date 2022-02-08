@@ -92,14 +92,15 @@ signup.renderFunction = (addElement, app) => {
 
 game.renderFunction = async (addElement, app) =>{
     let gameContainer = new TicTacToeGameContainer();
-    
+    let gameInfoContainer = new Container();
     addElement(new Header());
     addElement(new Main(
+        gameInfoContainer,
         new Tile(
             gameContainer
         )
     ));
     addElement(new Footer());
 
-    await TicTacToeGame.createNew(app, gameContainer);
+    await TicTacToeGame.createNew(app, gameContainer, gameInfoContainer);
 }
