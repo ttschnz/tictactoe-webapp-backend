@@ -3,6 +3,7 @@ import { home,game,user,login,signup} from "./states.js";
 
 // create the app
 export const app = new WebApp();
+window["webApp"] = app;
 // add states to it
 app.addState(home);
 app.addState(user);

@@ -1,13 +1,20 @@
 import WebApp from "./webapp.js";
-
+import { BasicElement, Warning } from "./elements.js";
 // type for State.stateId
 export type  StateId = string|number;
+
+export interface ErrorOptions{
+    retry?:Function|undefined,
+    cancel?:Function|undefined,
+    ok?:Function|undefined
+};
 
 export default class State{
     renderTarget:WebApp["renderTarget"] = document.body;
     stateSetter:WebApp["setState"]= ()=>{};
     stateGetter:WebApp["getState"]=()=>this;
     log:WebApp["log"] = console.log;
+    app:WebApp;
     /**
      * 
      * @param stateId unique id of the state
@@ -26,8 +33,16 @@ export default class State{
         this.stateSetter = webAppInstance.setState;
         this.log = webAppInstance.log;
         webAppInstance.log(`rendering State "${this.title}" (id=${this.stateId})`, this);
-        this.renderFunction();
+        this.renderFunction(this.addElement.bind(this), webAppInstance);
     }
+    /**
+     * Add an Element to the screen
+     * @param elmnt a BasicElement that will be added to the target element
+     */
+    addElement(elmnt:BasicElement){
+        this.renderTarget.appendChild(elmnt.element);
+    }
+
     /**
      * 
      * @param renderTarget the target to render the app to
@@ -35,7 +50,15 @@ export default class State{
      * @param stateGetter function returning the state
      * @param log function for logging
      */
-    renderFunction():void{
+    renderFunction(addElement:Function, app:WebApp){
         this.log(`empty renderFunction called`, this);
+    }
+    /**
+     * Function to show an error to the user
+     * @param errorText 
+     * @param options 
+     */
+    showError(errorText:string, options:ErrorOptions){
+        this.addElement(new Warning(errorText, options));
     }
 }

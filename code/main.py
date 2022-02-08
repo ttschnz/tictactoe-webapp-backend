@@ -99,7 +99,7 @@ class Game(db.Model, SerializerMixin):
 
     # returns all moves associated with this game
     def getMoves(self):
-        return db.session.query(Moves).filter(Moves.gameId == self.gameId).all()
+        return db.session.query(Move).filter(Move.gameId == self.gameId).all()
 
     # returns game field in one-dimensional array with {attacker:1, defender:-1, empty:0}
     def getGameField(self):
@@ -135,11 +135,12 @@ class Game(db.Model, SerializerMixin):
 
     def toResponse(self):
         response = {"data":{}}
-        response["data"]["_gameId"] = self.gameId
+        # response["data"]["_gameId"] = self.gameId
         response["data"]["gameId"] = self.idToHexString()
         response["success"]=True
         if not (self.attacker and self.defender):
             response["data"]["gameKey"] = self.gameKey
+        return response
     
     def authenticate(self, username, gameKey):
         return self.attacker == username or self.defender == username or self.gameKey == gamekey
@@ -253,7 +254,14 @@ class Session(db.Model, SerializerMixin):
         db.session.refresh(self)
         return int(os.environ["SESSION_TIMEOUT"]) + self.sessionStart
 
+@app.route('/manifest.json')
+@app.route('/manifest.manifest')
+def webAppManifest():
+    return send_from_directory('static', 'manifest.json')
 
+@app.route('/serviceWorker.js')
+def serviceWorker():
+    return send_from_directory('static', 'serviceWorker.js')
 # return appLoader.html on all GET requests
 @app.route('/', defaults={'path': ''}, methods=["GET"])
 @app.route('/<path:path>', methods=["GET"])
@@ -355,20 +363,25 @@ def makeMove():
 
     return json.dumps(response)
 
-# @app.route("/viewGame", methods=["POST"])
-# def sendGameInfo():
-#     response = {"success":True}
-#     try:
-#         gameId = int("0x" + request.form["gameId"], 16)
-#         response["data"] = [{"gameId":i.gameId, "moveIndex":i.moveIndex, "movePosition":i.movePosition, "player": i.player} for i in db.session.query(Move).filter(Move.gameId == gameId).all()]
-#     except Exception as e:
-#         app.logger.error(e)
-#         response["success"] = False
-#     return json.dumps(response)
+@app.route("/viewGame", methods=["POST"])
+def sendGameInfo():
+    response = {"success":True}
+    try:
+        game = Game.findByHex(request.form["gameId"])
+        moves = game.getMoves()
+        response["data"]=[move.to_dict() for move in moves]
+        # Move.findByGame()
+        # gameId = int("0x" + request.form["gameId"], 16)
+        # response["data"] = [{"gameId":i.gameId, "moveIndex":i.moveIndex, "movePosition":i.movePosition, "player": i.player} for i in db.session.query(Move).filter(Move.gameId == gameId).all()]
+    except Exception as e:
+        app.logger.error(e)
+        response["success"] = False
+    return json.dumps(response)
 
 # just for testing stuff
 @app.route("/test", methods=["GET", "POST"])
 def test():
+    app.logger.info(request.form)
     # board = boardify(request.form["board"])
     # solution = solver(board, request.form["role"])
     return json.dumps({"success":True})
