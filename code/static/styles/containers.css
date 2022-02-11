@@ -62,3 +62,9 @@ footer {
     min-width: min(400px, 80vw);
     min-height: 500px;
 }
+
+.centered{
+    justify-content: center;
+    align-items: center;
+    text-align: center; 
+}

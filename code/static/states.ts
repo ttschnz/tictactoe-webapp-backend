@@ -13,17 +13,26 @@ import {
     FlexContainerColumn,
     FlexContainerRow,
     Form,
-    PrimaryButton
+    PrimaryButton,
+    Span,
+    FlexContainer
 } from "./elements.js";
-import { TicTacToeGame, TicTacToeGameContainer } from "./game.js";
+import { 
+    GamePlayerInfo,
+    TicTacToeGame, 
+    TicTacToeGameContainer 
+} from "./game.js";
 
 export const home = new State(0, "Home", "/");
 export const game = new State(1, "Game", "/game");
+export const gameInfo = new State(1.2, "Game", "/game/", RegExp("^\/game\/(.*)$"));
+export const browseGames = new State(1.3, "Browse Games", "/games");
 export const user = new State(2, "User", "/user");
-export const browseGames = new State(3, "Browse Games", "/games");
 
 export const login = new State(4, "Log in", "/login");
 export const signup = new State(5, "Sign up", "/signup");
+
+export const errorState = new State(404, "Error", "");
 
 home.renderFunction = (addElement, app) => {
     addElement(new Header());
@@ -93,14 +102,40 @@ signup.renderFunction = (addElement, app) => {
 game.renderFunction = async (addElement, app) =>{
     let gameContainer = new TicTacToeGameContainer();
     let gameInfoContainer = new Container();
+    let gamePlayerInfo = GamePlayerInfo.procrastinate();
     addElement(new Header());
     addElement(new Main(
         gameInfoContainer,
         new Tile(
-            gameContainer
+            gameContainer,
+            gamePlayerInfo
         )
     ));
     addElement(new Footer());
+    
+    let game = await TicTacToeGame.createNew(app, gameContainer, gameInfoContainer);
+    gamePlayerInfo.resolve(game);
+}
 
-    await TicTacToeGame.createNew(app, gameContainer, gameInfoContainer);
+gameInfo.renderFunction = async (addElement, app)=>{
+    let gameContainer = new TicTacToeGameContainer().addClass("readonly") as TicTacToeGameContainer;
+    let gameInfoContainer = new Container();
+
+    let gameId = app.state.regExResult[1];
+    app.log(`gameId: ${gameId}`);
+    let game = new TicTacToeGame(gameId, app, gameContainer, gameInfoContainer);
+
+    addElement(new Header());
+    addElement(new Main(gameInfoContainer, new Tile(gameContainer, new GamePlayerInfo(game))));
+    addElement(new Footer());
+}
+
+gameInfo.urlGetter =((_this:State)=>{
+    return _this.regExResult[1];
+}).bind(gameInfo, gameInfo);
+
+errorState.renderFunction = async (addElement, app)=>{
+    addElement(new Header());
+    addElement(new Main(new FlexContainerColumn(new Heading(1,"Error 404"), new Span("not found")).addClass("centered")));
+    addElement(new Footer());
 }

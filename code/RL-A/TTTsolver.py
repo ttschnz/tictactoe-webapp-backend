@@ -42,14 +42,13 @@ class TicTacToeSolver:
             if score >= highestScore:
                 highestScore = score
                 action = move
-        return action.tolist()
+        return action
 
     def getBoardIdentifier(self, board):
         boardIdentifier = str(board.reshape(np.prod(board.shape)))
         return boardIdentifier
 
     def getValidMoves(self, board):
-        print(board)
         return np.argwhere(board == 0)
 
 # transforms a string like 1,-1,0,1,1,0,-1,-1,... to a solvable board

@@ -6,6 +6,7 @@ button {
     transition: background 0.33s, color 0.33s;
     border-radius: 5px;
     border-color: transparent;
+    user-select: none;
 }
 
 button.primaryAction {
@@ -53,4 +54,13 @@ input~label {
 
 input:placeholder-shown~label {
     transform: translateY(-4px) scale(.8);
+}
+
+.button.material-icons {
+    height: 1.2em;
+    width: 1.2em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
 }

@@ -1,3 +1,4 @@
+import { app } from "./main.js";
 import State, {
     ErrorOptions
 } from "./state.js";
@@ -59,6 +60,7 @@ export default class WebApp {
      * @param state state to be added to list
      */
     addState(state: State) {
+        this.log(`adding state ${state.stateId}: ${state.url}`)
         this.states[state.stateId] = state;
     }
     /**
@@ -73,7 +75,9 @@ export default class WebApp {
      */
     public set state(state: State) {
         // save state
-        this.states[state.stateId] = state
+        this.log(`adding state`, state, `${document.location.pathname}`);
+        this.states[state.stateId] = state;
+        if(state.regEx) state.regExResult = document.location.pathname.match(state.regEx);
         // set state
         window.history.pushState(state.stateId, state.title, state.url);
         // render it
@@ -123,6 +127,7 @@ export default class WebApp {
         console.log(...content);
     }
     showError(errorText: string, options: ErrorOptions) {
+        this.log(`showing error ${errorText}`, `opts:`, options);
         this.state.showError(errorText, options);
     }
 }

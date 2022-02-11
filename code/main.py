@@ -9,8 +9,9 @@ from sqlalchemy_serializer import SerializerMixin
 # prettify html before send
 from flask_pretty import Prettify
 # we will use os to access enviornment variables stored in the *.env files, time for delays and json for ajax-responses
-import os, time, json, random, sys
+import os, time, json, random, sys, numpy as np
 import secrets
+import subprocess
 # for debugging
 import traceback
 from datetime import datetime
@@ -18,7 +19,7 @@ from datetime import datetime
 # add RL-A to importable 
 sys.path.insert(0, '/code/RL-A/')
 from TTTsolver import TicTacToeSolver, boardify
-solver = TicTacToeSolver("policy_3_3_x.pkl","policy_3_3_o.pkl").solveState
+solver = TicTacToeSolver("policy_3_3_o.pkl","policy_3_3_x.pkl").solveState
 
 # initialize flask application with template_folder pointed to public_html (relative to this file)
 app=Flask(__name__)
@@ -93,6 +94,17 @@ class Game(db.Model, SerializerMixin):
         # only set key if not with an account
         self.gameKey = hex(random.randrange(16**32))[2:] if not player else None
 
+    # determines the game and sets gameFinished, and winner to the appropriate values 
+    def determineState(self):
+        board = self.getNumpyGameField()
+        winner = self.getWinnerOfBoard(board)
+        app.logger.info(f"determined winner: {winner}")
+        if(winner == False or winner == 1 or winner == 0):
+            self.gameFinished = True
+            if(winner != False):
+                self.winner = self.attacker if winner == 1 else self.defender
+        db.session.commit()
+
     # transforms the game-id (int) to a hex-string
     def idToHexString(self, length=6):
         return ("0" * length + hex(self.gameId)[2:])[-6:]
@@ -110,6 +122,7 @@ class Game(db.Model, SerializerMixin):
                 field[move.movePosition] = 1 
             else:
                 field[move.movePosition] = -1
+        return field
 
     def getNumpyGameField(self):
         field = np.empty(9, dtype="float64")
@@ -127,11 +140,14 @@ class Game(db.Model, SerializerMixin):
 
     # gets the winner of game (string), None if even, False if ongoing
     def getWinner(self):
-        return random.choice([self.attacker, self.defender, None, False])
+        if not self.gameFinished:
+            return False 
+        else:
+            return self.getMoves()[-1].player
 
     # returns state of game => Game.ONGOING | Game.FINISHED
     def getGameState(self):
-        return self.ONGOING if self.getWinner == None else self.FINISHED
+        return self.ONGOING if self.getWinner() == False else self.FINISHED
 
     def toResponse(self):
         response = {"data":{}}
@@ -154,12 +170,39 @@ class Game(db.Model, SerializerMixin):
         return Game.find(int("0x" + gameId, 16))
 
     @staticmethod
+    def rotate45(array2d):
+        rotated = [[] for i in range(np.sum(array2d.shape)-1)]
+        for i in range(array2d.shape[0]):
+            for j in range(array2d.shape[1]):
+                rotated[i+j].append(array2d[i][j])
+        return rotated
+    @staticmethod
     def createWithUser(username):
         game = Game(username)
         db.session.add(game)
         db.session.commit()
         db.session.refresh(game)
         return game
+    
+    @staticmethod
+    # @returns players number if he wins, elseif even False else None
+    def getWinnerOfBoard(board):
+        app.logger.info(f"getting winner of board={board}")
+        board = board.reshape((3,3))
+        app.logger.info(f"getting winner of reshaped board={board}")
+        app.logger.info(f"test-rotate: {np.rot90(board)}")
+        # once normal, once rotated by 45 degrees and only 3rd row of that ([2:3]) (diagonal 1) and once rotated by -45 degrees (also only 3rd row) (diagonal 2)
+        for i in [board, np.rot90(board, axes=(0,1)), *[Game.rotate45(j)[2:3] for j in [board, board[::-1]]]]:
+            app.logger.info(f"determining winner of sub-board {i}")
+            # for every line
+            for j in i:
+                app.logger.info(f"looking at row {j}")
+                # figure out if the average is exactly the same as the first entry
+                if sum(j)/len(j) == j[0] and 0 not in j:
+                    return j[0]
+        if 0 in board:
+            return None
+        return False
 
 # table to store moves to
 class Move(db.Model, SerializerMixin):
@@ -174,7 +217,7 @@ class Move(db.Model, SerializerMixin):
         self.player = player if player else None
         self.moveIndex = self.getMoveIndex()
         app.logger.info(self.moveIndex)
-        self.movePosition = movePosition
+        self.movePosition = int(movePosition)
         self.checkValidity()
 
     def getMoveIndex(self):
@@ -205,7 +248,8 @@ class Move(db.Model, SerializerMixin):
     @staticmethod
     def fromXY(coords, user, gameId):
         # 2d index to 1d => x + y*3 (counting from 0)
-        move = Move(gameId, coords["x"]+coords["y"]*3, user)
+        app.logger.info(f"creating move from coords: {coords}, user={user}, gameId={gameId}")
+        move = Move(gameId, int(coords["x"])+int(coords["y"])*3, user)
         db.session.add(move)
         db.session.commit()
         db.session.refresh(move)
@@ -348,13 +392,18 @@ def makeMove():
 
         db.session.add(Move(game.gameId, int(request.form["movePosition"]), username))
         db.session.commit()
+        # re-calculate games state after commit of move
+        game.determineState()
 
         # if gameKey is set user played as guest and therefore playing vs. bot
         # => calling bot for his move
         # but only if game is not finished
         if gameKey and game.getGameState() == Game.ONGOING:
-            solution = solver(game.getNumpyGameField(), "defender")
+            solution = solver(game.getNumpyGameField().reshape((3,3)), "defender")
+            app.logger.info(f"found solution to board: {solution}")
             move = Move.fromXY({"y":solution[0], "x":solution[1]},os.environ["BOT_USERNAME"], game.gameId)
+        else:
+            app.logger.info("game finished, no moves made by RL-A")
         response = {"success": True}
 
     except Exception as e:
@@ -369,7 +418,8 @@ def sendGameInfo():
     try:
         game = Game.findByHex(request.form["gameId"])
         moves = game.getMoves()
-        response["data"]=[move.to_dict() for move in moves]
+        response["data"]={"moves": [move.to_dict() for move in moves], "gameState":{"finished":game.gameFinished, "winner":game.winner}}
+        
         # Move.findByGame()
         # gameId = int("0x" + request.form["gameId"], 16)
         # response["data"] = [{"gameId":i.gameId, "moveIndex":i.moveIndex, "movePosition":i.movePosition, "player": i.player} for i in db.session.query(Move).filter(Move.gameId == gameId).all()]
@@ -404,9 +454,10 @@ def robots():
 # only debug if not as module
 if __name__ == "__main__":    
     # compile ts to js
-    print("compiling...")
-    print(os.popen("tsc --project /code/tsconfig.json").read())
-    print("done compiling")
+    print("starting compiling watch...")
+    subprocess.Popen(['tsc', '--watch'], cwd="/code")
+    # print(os.popen("tsc --project /code/tsconfig.json").read())
+    print("watch started")
 
     # add sample data for testing
     def addSampleData(dataCount=0):

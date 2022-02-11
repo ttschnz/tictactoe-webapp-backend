@@ -5,12 +5,12 @@
     position: relative;
 }
 
-.gameContainer .gameTile[data-occupied-by="false"]:hover,
-.gameContainer .gameTile[data-occupied-by="false"]:active {
+.gameContainer:not(.readonly) .gameTile[data-occupied-by="false"]:hover,
+.gameContainer:not(.readonly) .gameTile[data-occupied-by="false"]:active {
     background: var(--color500);
 }
 
-.gameTile:is([data-occupied-by="false"]){
+.gameContainer:not(.readonly) .gameTile:is([data-occupied-by="false"]){
     cursor: pointer;
 }
 
@@ -47,8 +47,11 @@
     min-height: auto;
     align-self: center;
     justify-self: center;
+}
+.gameContainer{
     --size: 60;
     gap: 10px;
+    margin-bottom: 50px;
 }
 
 .gameThumbnail {
@@ -73,4 +76,52 @@
     100% {
         background-position: 200px;
     }
+}
+
+.gameNumberContainer {
+    color: var(--color700);
+    font-weight: bold;
+    gap: 0;
+    justify-content: center;
+}
+
+.gameStateContainer {
+    font-size: 1.3em;
+}
+
+.gamePlayerInfo, .playerInfo {
+    justify-content: space-around;
+}
+
+.gamePlayerInfo > :first-child {
+    direction:ltr
+}
+.gamePlayerInfo >:last-child {
+    direction:rtl
+}
+
+.playerInfo {
+    background: var(--lightColor100);
+    padding: 5px;
+    border-radius: 7.5px;
+    box-shadow: 2px 2px 6px 0px var(--color500);
+    column-gap: 0px;
+}
+
+.playerSign {
+    flex-basis: 100%;
+    font-size: 2.6em;
+    text-align: center;
+}
+.gamePlayerInfo .vs {
+    font-size: 1.7em;
+}
+
+.playerInfo.myTurn {
+    box-shadow: 5px 5px 8px 0px hsl(var(--accentHue) 40% 40% / 0.5);
+    background: hsl(var(--accentHue) 23% 50%);
+    color: white;
+}
+.playerInfo{
+    transition: box-shadow 0.3s, background 0.3s;
 }
