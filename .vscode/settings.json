@@ -2,5 +2,7 @@
     "files.exclude": {
         "**/*.js": { "when": "$(basename).ts" },
         "**/*.js.map": { "when": "$(basename)" }
-    }
+    },
+    "eslint.packageManager":"yarn",
+    "eslint.validate": ["typescript"]
 }

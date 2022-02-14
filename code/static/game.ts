@@ -206,7 +206,7 @@ export class TicTacToeGame {
      * @returns Promisw which will be resolved to a TicTacToeGame instance
      */
     public static async createNew(app: WebApp, renderTarget: TicTacToeGameContainer, infoTarget: Container): Promise < TicTacToeGame > {
-        let response = await app.api("/startNewGame", {});
+        let response = await app.api("/startNewGame", {}, true);
         if (response.success) return new TicTacToeGame(response.data.gameId, app, renderTarget, infoTarget, Authenticator.fromGameKey(response.data.gameKey), );
         else app.showError("Game data could not be refreshed", {
             retry: TicTacToeGame.createNew.bind(undefined, app)

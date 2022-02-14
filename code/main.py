@@ -54,7 +54,9 @@ class User(db.Model, SerializerMixin):
 
     @staticmethod
     def authorize(username, key):
-        return db.session.query(User).filter(User.username==username,User.key==key).count()==1
+        app.logger.info(username)
+        app.logger.info(key)
+        return db.session.query(User).filter(User.username==username).filter(User.key==key).count()==1
 
     @staticmethod
     def authorizeRequest(request):
@@ -290,13 +292,13 @@ class Session(db.Model, SerializerMixin):
     def toResponse(self):
         response = {"success":True}
         response["data"] = {}
-        response["data"]["token"] = self.token
+        response["data"]["token"] = self.sessionKey
         response["data"]["token_expires"] = self.getExpiration()
         return response
 
     def getExpiration(self):
         db.session.refresh(self)
-        return int(os.environ["SESSION_TIMEOUT"]) + self.sessionStart
+        return int(os.environ["SESSION_TIMEOUT"]) + int(self.sessionStart.timestamp())
 
 @app.route('/manifest.json')
 @app.route('/manifest.manifest')
@@ -328,7 +330,8 @@ def getsalt():
 def loginSubmission():
     try:
         # check if users credentials match and generate a token
-        response = Session.generateToken(request.form["username"]).toResponse() if User.authorize(request.form) else {"success":False}
+        # response = Session.generateToken(user.username).toResponse()
+        response = Session.generateToken(request.form["username"]).toResponse() if User.authorizeRequest(request) else {"success":False, "disallowed":True}
     except:
         response = {"success": False}
     return json.dumps(response)

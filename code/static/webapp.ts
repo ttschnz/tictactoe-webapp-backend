@@ -1,11 +1,18 @@
-import { app } from "./main.js";
+import {
+    app
+} from "./main.js";
 import State, {
     ErrorOptions
 } from "./state.js";
 import {
     StateId
 } from "./state.js";
-
+import { home } from "./states.js";
+export type Credentials = {
+    username: string,
+    token: string,
+    tokenExpiration: number
+}
 export default class WebApp {
     states: {
         [key: StateId]: State
@@ -25,14 +32,17 @@ export default class WebApp {
         });
     }
 
-    api(target: string, data = {}): Promise < any > {
+    api(target: string, data = {}, sendToken = false): Promise < any > {
         return new Promise((resolve, _reject) => {
-            
+
             fetch(target, {
                     method: "post",
                     body: new URLSearchParams(Object.entries(data)).toString(),
                     headers: {
-                        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+                        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+                        ...(sendToken ? {
+                            "Authorisation": `Bearer ${sessionStorage.getItem("token")}`
+                        } : {})
                     }
                 })
                 .then(async response => {
@@ -43,7 +53,7 @@ export default class WebApp {
                         });
                     }
                     let responseJson = await response.json();
-
+                    // resolve with response if it is is parseable, else resolve with empty object
                     resolve([null, undefined, NaN].indexOf(responseJson) != -1 ? {} : responseJson);
                 })
                 .catch((reason) => {
@@ -77,9 +87,11 @@ export default class WebApp {
         // save state
         this.log(`adding state`, state, `${document.location.pathname}`);
         this.states[state.stateId] = state;
-        if(state.regEx) state.regExResult = document.location.pathname.match(state.regEx);
+        if (state.regEx) state.regExResult = document.location.pathname.match(state.regEx);
         // set state
         window.history.pushState(state.stateId, state.title, state.url);
+        // set the title to the title of the state
+        document.title = `${state.title} - TicTacToe`;
         // render it
         this.render();
     }
@@ -103,6 +115,35 @@ export default class WebApp {
     async getVersionHash() {
         if (!this.versionHash) this.versionHash = (await this.api("/version")).data;
         return this.versionHash;
+    }
+    /**
+     * returns the credentials from localStorage, false if not authenticated
+     */
+    public get credentials(): Credentials|false {
+        // construct an object containing the credentials
+        let cred: Credentials = {
+            username: localStorage.getItem("username"),
+            token: localStorage.getItem("token"),
+            tokenExpiration: Number(localStorage.getItem("tokenExpiration"))
+        };
+        // if the username, the token, and an expiration date is set, and the token is still valid, return the crendentials. if not, return false
+        if(cred.username && cred.token && cred.tokenExpiration && cred.tokenExpiration <= new Date().getTime()) return cred;
+        else return false;
+    }
+    public set credentials(value:Credentials|false){
+        if(!value) {
+            localStorage.removeItem("token");
+            localStorage.removeItem("tokenExpiration");
+            localStorage.removeItem("username");
+        }else{    
+            localStorage.setItem("token", value.token);
+            localStorage.setItem("tokenExpiration", String(value.tokenExpiration));
+            localStorage.setItem("username", value.username);
+        }
+    }
+    signOut(){
+        app.credentials = false;
+        app.setState(home);
     }
     /**
      * calls the render function of current state

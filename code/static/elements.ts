@@ -15,7 +15,7 @@ import {
 // basic element on which all other elements should be extended 
 export class BasicElement {
     element: HTMLElement;
-    children:BasicElement[] = [];
+    children: BasicElement[] = [];
     constructor(tagName) {
         this.element = document.createElement(tagName);
         this.element["instance"] = this;
@@ -27,16 +27,18 @@ export class BasicElement {
      * adds an element to the container and stores its instance to this.children if a BasicElement is given
      * @param element 
      */
-    add(element:BasicElement|HTMLElement|Text):void{
-        if(element instanceof HTMLElement || element instanceof Text) this.element.appendChild(element);
-        else this.element.appendChild(element.element);
-        if(element instanceof BasicElement && this.children.indexOf(element)<0) this.children.push(element);
+    add(...elements: Array < BasicElement | HTMLElement | Text > ): void {
+        for (let element of elements) {
+            if (element instanceof HTMLElement || element instanceof Text) this.element.appendChild(element);
+            else this.element.appendChild(element.element);
+            if (element instanceof BasicElement && this.children.indexOf(element) < 0) this.children.push(element);
+        }
     }
     /**
      * clears content of element
      */
-    clear():void{
-        while (this.element.childNodes.length>0){
+    clear(): void {
+        while (this.element.childNodes.length > 0) {
             this.element.removeChild(this.element.childNodes[0]);
         }
         console.log(this.element.children);
@@ -47,12 +49,12 @@ export class BasicElement {
      * @param className class to filter by
      * @returns an array with the children matching the class provided
      */
-    findChildren(className:Function, recurse:boolean=false):BasicElement[]{
-        let result:BasicElement[] = [];
-        if(recurse) this.children.forEach(elmt=>{
+    findChildren(className: Function, recurse: boolean = false): BasicElement[] {
+        let result: BasicElement[] = [];
+        if (recurse) this.children.forEach(elmt => {
             result.push(...elmt.findChildren(className, recurse))
         });
-        result.push(...this.children.filter(elmt=>elmt.constructor == className));
+        result.push(...this.children.filter(elmt => elmt.constructor == className));
         return result;
     }
     /**
@@ -60,18 +62,18 @@ export class BasicElement {
      * @param tokens classes
      * @returns this
      */
-    addClass(...tokens:string[]):BasicElement{
+    addClass(...tokens: string[]): BasicElement {
         this.element.classList.add(...tokens);
         return this;
     }
-    removeClass(...tokens:string[]):BasicElement{
+    removeClass(...tokens: string[]): BasicElement {
         this.element.classList.remove(...tokens);
         return this;
     }
 }
 
 export class ClickableElmnt extends BasicElement {
-    constructor(public label: string | HTMLElement |BasicElement, public action: State | Function, tagName: string = "div") {
+    constructor(public label: string | HTMLElement | BasicElement, public action: State | Function, tagName: string = "div") {
         super(tagName);
         this.addClass("clickable");
         this.element.addEventListener("click", this.click.bind(this))
@@ -134,30 +136,36 @@ export class Container extends BasicElement {
     constructor(...args: Array < any > ) {
         let tagName: string;
         if (typeof args[0] == "string") tagName = args.shift();
-        super(tagName ?? "div");
+        if (tagName) super(tagName);
+        else super("div");
         if (args[0] instanceof Array) args = args.shift();
         for (let child of args) {
             this.add(child);
         }
     }
 }
-export class Image extends BasicElement{
-    constructor(public src:string, public alt?:string){
+export class Image extends BasicElement {
+    constructor(public src: string, public alt ? : string) {
         super("img");
         this.element.setAttribute("src", this.src);
-        if(this.alt) this.element.setAttribute("alt", this.alt);
+        if (this.alt) this.element.setAttribute("alt", this.alt);
     }
 }
 
 export class Link extends Container {
-    constructor({href,action}:{href?:string; action?:Function}, ...children:BasicElement[]){
+    constructor({
+        href,
+        action
+    }: {
+        href ? : string;action ? : Function
+    }, ...children: BasicElement[]) {
         super("a", children);
-        if(action) this.element.addEventListener("click", (event:MouseEvent)=>{
+        if (action) this.element.addEventListener("click", (event: MouseEvent) => {
             console.log(event);
             event.preventDefault();
             action();
         });
-        if(href) this.element.setAttribute("href", href);
+        if (href) this.element.setAttribute("href", href);
     }
 }
 
@@ -166,13 +174,17 @@ export class ReferralBadge extends Link {
     constructor() {
         let tgt = "https://www.digitalocean.com/?refcode=5431ada19bb0&utm_campaign=Referral_Invite&utm_medium=Referral_Program&utm_source=badge";
         let badgeImg = new Image("https://web-platforms.sfo2.digitaloceanspaces.com/WWW/Badge%203.svg", "DigitalOcean Referral Badge");
-        super({href:tgt}, badgeImg);
+        super({
+            href: tgt
+        }, badgeImg);
     }
 }
 
 export class VersionInfo extends Link {
     constructor() {
-        super({href:`https://github.com/ttschnz/tictactoe_webapp/`}, new Span('source'));
+        super({
+            href: `https://github.com/ttschnz/tictactoe_webapp/`
+        }, new Span('source'));
     }
 }
 
@@ -192,7 +204,8 @@ export class Header extends BasicElement {
     constructor(showLogin: boolean = true, showLogo: boolean = true) {
         super("header");
         if (showLogo) this.add(new TicTacToeLogo());
-        if (showLogin) this.add(new Button("Log in", login));
+        if (localStorage.getItem("username")) this.add(new FlexContainer(new Span(`@${localStorage.getItem("username")}`), new Button("Sign out", app.signOut)).addClass("centered"));
+        else if (showLogin) this.add(new Button("Log in", login));
     }
 }
 export class Tile extends Container {
@@ -235,17 +248,18 @@ export class HorizontalLine extends BasicElement {
 }
 
 export class Input extends BasicElement {
+    input: HTMLInputElement;
     constructor(name: string, label: string, type: string = "text", value ? : string | undefined, autocomplete ? : string | undefined) {
         super("div");
         this.addClass("labeled", "input");
 
-        let input = document.createElement("input");
-        input.name = name;
-        input.type = type;
-        input.placeholder = label;
-        if (value != undefined) input.setAttribute("value", value);
-        if (autocomplete != undefined) input.setAttribute("autocomplete", autocomplete);
-        this.add(input);
+        this.input = document.createElement("input");
+        this.input.name = name;
+        this.input.type = type;
+        this.input.placeholder = label;
+        if (value != undefined) this.input.setAttribute("value", value);
+        if (autocomplete != undefined) this.input.setAttribute("autocomplete", autocomplete);
+        this.add(this.input);
 
         let labelElement = document.createElement("label");
         labelElement.setAttribute("for", name);
@@ -253,21 +267,30 @@ export class Input extends BasicElement {
         this.add(labelElement);
 
     }
+    get value() {
+        return this.input.value;
+    }
+    set value(data) {
+        this.input.value = data;
+    }
 }
 export class Form extends Container {
     constructor(...children: BasicElement[]) {
         super("form", children);
+        this.element.addEventListener("submit", (event) => {
+            event.preventDefault();
+        })
     }
 }
 
-export class MaterialIcon extends BasicElement{
-    constructor(iconName:string){
+export class MaterialIcon extends BasicElement {
+    constructor(iconName: string) {
         super("span");
         this.addClass("material-icons");
-        this.element.innerHTML=iconName;
+        this.element.innerHTML = iconName;
     }
 }
-export class MaterialIconButton extends Button{
+export class MaterialIconButton extends Button {
     constructor(public label: string | HTMLElement | BasicElement, public action: State | Function) {
         super(label, action);
         this.addClass("material-icons");
@@ -284,29 +307,29 @@ export class Warning extends FlexContainer {
         this.add(errorSpan);
 
         if (options.retry) this.add(new Button("retry", this.callFn.bind(this, options.retry)));
-        if (options.ok) this.add(new Button("ok",this.callFn.bind(this, options.ok)));
+        if (options.ok) this.add(new Button("ok", this.callFn.bind(this, options.ok)));
         if (options.cancel) this.add(new Button("cancel", this.callFn.bind(this, options.cancel)));
-        
+
         this.add(new MaterialIconButton("close", this.close.bind(this)));
     }
-    close(){
+    close() {
         this.element.parentElement.removeChild(this.element);
     }
     /**
      * Closes warning before calling function (to prevent multiple warnings from popping up at once)
      * @param callback function to be called after closing warning
      */
-    callFn(callback:Function){
+    callFn(callback: Function) {
         this.close()
         callback();
     }
 }
-export class Span extends BasicElement{
-    constructor(content:string){
+export class Span extends BasicElement {
+    constructor(content: string) {
         super("span");
         this.add(document.createTextNode(content));
     }
-    update(content:string){
+    update(content: string) {
         this.clear();
         this.add(document.createTextNode(content));
     }
