@@ -13,24 +13,26 @@
     <hr data-label="{{label}}" class="labelledHr">
 {%- endmacro %}
 
-{% macro game(attacker, defender, moves, gameId, state=None)%}
+{% macro game(attacker, defender, field, gameId, state=None, winner=None)%}
     <div class="game grid">
         <div class="gameState">
-            {% if state == 1 %}
-            <span class="material-icons win">emoji_events</span>
-            {% elif state == -1 %}
-            <span class="material-icons loose">clear</span>
-            {% elif state == 0 %}
-            <span class="material-icons even">balance</span>
-            {% else %}
+            {% if state == 0 %}
             <span class="material-icons ongoing">hourglass_empty</span>
+            {% else %}
+                {% if winner == username %}
+                <span class="material-icons win">emoji_events</span>
+                {% elif winner == None %}
+                <span class="material-icons even">balance</span>
+                {% else %}
+                <span class="material-icons loose">clear</span>
+                {% endif %}
             {% endif %}
         </div>
         <a href="/games/{{gameId}}">
             <div class="gameThumbnail rows">
-            {% for move in moves %}
-            <!-- {{moves}} -->
-                <div class="gameTile" data-occupied-by="{{"x" if move == attacker else "o" if move == defender else "false" }}"></div>
+            <!-- {{field}} -->
+            {% for entry in field %}
+                <div class="gameTile" data-occupied-by="{{"x" if entry == 1 else "o" if entry == 0 else "false"}}"></div>
             {% endfor %}
             </div>
         </a>

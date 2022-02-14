@@ -1,4 +1,4 @@
-FROM python:latest
+FROM nikolaik/python-nodejs:latest
 
 # install flask
 RUN pip install flask
@@ -18,5 +18,8 @@ RUN pip install flask-pretty
 # RUN pip install traceback
 # numpy for RL-A
 RUN pip install numpy
+
+# install tsc for compiling ts to js
+RUN npm install -g typescript
 
 CMD python /code/main.py

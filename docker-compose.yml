@@ -34,7 +34,7 @@ services:
       - ${HTTPS_PORT:-443}:${HTTPS_PORT:-443}/tcp
     volumes:
       # mount app as read-only
-      - ./code:/code:ro
+      - ./code:/code:rw
       - ./.well-known:/.well-known:ro
       - /etc/letsencrypt:/letsencrypt:ro
       - ./.git:/.git:ro

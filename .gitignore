@@ -1,3 +1,7 @@
+#compiled scripts
+*.js
+*.js.map
+
 # dbdata
 dbdata/*
 
