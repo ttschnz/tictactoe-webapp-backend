@@ -40,7 +40,10 @@ def render_template(fileName, request, opts = False):
 def cronjob(*args):
     app.logger.info("cronjob executed")
     if not os.popen("git rev-parse HEAD").read().rstrip() == versionHash:
-        raise RuntimeError("updating server...")
+        app.logger.info("restarting server for update...")
+        os._exit(1)
+    else:
+        app.logger.info("no update required")
     return 
 
 # table to store users and their password to
