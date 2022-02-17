@@ -33,3 +33,4 @@ Im Browser wird unter dem Port :80 eine Webseite angezeigt.
 Für die SSL-Verschlüsslung kann in der Datei `web.env` Einstellungen angepasst werden. Ich empfiehle die Benutzung des `certbots` für die Einrichtung der Zertifikate. Dazu der Anleitung auf [eff.org](https://certbot.eff.org/instructions) folgen.
 
 Als Root-Ordner für die ACME-Challenges kann der Pfad des Projekts angegeben werden, danach sollten Sie der Ordner, indem die Zertifikate sich befinden sowie die domain in der Datei `web.env` angeben sowie `ENABLE_SSL` auf `TRUE` setzen.
+ 
