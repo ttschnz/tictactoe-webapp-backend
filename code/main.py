@@ -8,12 +8,14 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy_serializer import SerializerMixin
 # prettify html before send
 from flask_pretty import Prettify
+# for cronjob (restart server on update)
+from flask_apscheduler import APScheduler
 # we will use os to access enviornment variables stored in the *.env files, time for delays and json for ajax-responses
 import os, time, json, random, sys, numpy as np, re
 import secrets
 import subprocess
 # for debugging
-import traceback
+# import traceback
 from datetime import datetime
 
 # add RL-A to importable 
@@ -34,6 +36,12 @@ db = SQLAlchemy(app)
 def render_template(fileName, request, opts = False):
     username = checkToken(request.cookies["token"]) if "token" in request.cookies.keys() else False
     return rt_(fileName, opts=opts, username=username if username else False, version=os.popen("git -C '/' log -n 1 --pretty=format:'%H'").read(), behind=os.popen("git rev-list $(git -C '/' log -n 1 --pretty=format:'%H')..HEAD | grep -c ^").read())
+
+def cronjob(*args):
+    app.logger.info("cronjob executed")
+    if not os.popen("git rev-parse HEAD").read().rstrip() == versionHash:
+        raise RuntimeError("updating server...")
+    return 
 
 # table to store users and their password to
 class User(db.Model, SerializerMixin):
@@ -428,7 +436,7 @@ def makeMove():
         response = {"success": True}
 
     except Exception as e:
-        app.logger.error(traceback.format_exc())
+        # app.logger.error(traceback.format_exc())
         response = {"success": False}
 
     return json.dumps(response)
@@ -483,7 +491,7 @@ def robots():
 
 # only debug if not as module
 if __name__ == "__main__":   
-    versionHash = os.popen("git rev-parse HEAD").read().rstrip() 
+    versionHash = os.popen("git rev-parse HEAD").read().rstrip()
     # compile ts to js
     print("starting compiling watch...")
     subprocess.Popen(['tsc', '--watch'], cwd="/code")
@@ -581,6 +589,13 @@ if __name__ == "__main__":
         print(e)
 
     print("server reached and initialized, starting web-service")
+
+    print("setting up cronjob")
+    scheduler = APScheduler()
+    scheduler.add_job(id="cronjob", func=cronjob, trigger="interval", seconds=10)
+    scheduler.start()
+    print("cronjob started")
+
     print("ssl enabled:", os.environ["ENABLE_SSL"])
     if "ENABLE_SSL" in os.environ and os.environ["ENABLE_SSL"].upper() == "TRUE" and not startHttpsServer():
         startHttpServer()
