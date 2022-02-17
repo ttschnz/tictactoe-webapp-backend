@@ -9,7 +9,7 @@ from sqlalchemy_serializer import SerializerMixin
 # prettify html before send
 from flask_pretty import Prettify
 # we will use os to access enviornment variables stored in the *.env files, time for delays and json for ajax-responses
-import os, time, json, random, sys, numpy as np
+import os, time, json, random, sys, numpy as np, re
 import secrets
 import subprocess
 # for debugging
@@ -281,12 +281,13 @@ class Session(db.Model, SerializerMixin):
 
     @staticmethod
     def find(sessionKey):
-        db.session.query(Session).filter(Session.sessionKey==sessionKey)
-        pass
+        return db.session.query(Session).filter(Session.sessionKey==sessionKey)
 
     @staticmethod
     def authenticateRequest(request):
-        session = Session.find(request.cookies["token"]).one() if "token" in request.cookies.keys() else None
+        token = re.match(r"(Bearer)\ ([0-f]*)", request.headers["Authorisation"]).groups()[-1] if "Authorisation" in request.headers else None
+        app.logger.info(f"authenticating token {token}")
+        session = Session.find(token).one() if token else None
         return session.username if session else None
 
     def toResponse(self):
@@ -370,6 +371,19 @@ def returnUserPage(username):
         games.append(game.getGameInfo())
     return json.dumps({"user":user, "games": games})
 
+@app.route("/checkCredentials", methods=["POST"])
+def checkCredentials():
+    try:
+        username = Session.authenticateRequest(request)
+        if(username == None):
+            raise Exception("invalid token")
+        response = {"success": True, "data": username}
+        return json.dumps(response)
+    except Exception as e:
+        app.logger.error(e)
+        response = {"success": False}
+        return json.dumps(response)
+
 @app.route("/startNewGame", methods=["POST"])
 def startNewGame():
     try:
@@ -421,7 +435,7 @@ def sendGameInfo():
     try:
         game = Game.findByHex(request.form["gameId"])
         moves = game.getMoves()
-        response["data"]={"moves": [move.to_dict() for move in moves], "gameState":{"finished":game.gameFinished, "winner":game.winner}}
+        response["data"]={"moves": [move.to_dict() for move in moves], "gameState":{"finished":game.gameFinished, "winner":game.winner}, "players":{"attacker": game.attacker, "defender": game.defender}}
         
         # Move.findByGame()
         # gameId = int("0x" + request.form["gameId"], 16)

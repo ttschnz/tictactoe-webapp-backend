@@ -8,11 +8,19 @@ import {
     StateId
 } from "./state.js";
 import { home } from "./states.js";
+
+export type JSONResponse = {
+    success: boolean,
+    data?:any,
+    error?:any
+}
+
 export type Credentials = {
     username: string,
     token: string,
     tokenExpiration: number
 }
+
 export default class WebApp {
     states: {
         [key: StateId]: State
@@ -30,18 +38,19 @@ export default class WebApp {
         window.addEventListener('popstate', (_event: PopStateEvent) => {
             this.render();
         });
+        // check if the credentials are valid
+        this.checkCredentials()
     }
 
-    api(target: string, data = {}, sendToken = false): Promise < any > {
+    api(target: string, data = {}, sendToken = false): Promise < JSONResponse > {
         return new Promise((resolve, _reject) => {
-
             fetch(target, {
                     method: "post",
                     body: new URLSearchParams(Object.entries(data)).toString(),
                     headers: {
                         "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-                        ...(sendToken ? {
-                            "Authorisation": `Bearer ${sessionStorage.getItem("token")}`
+                        ...(sendToken && this.credentials ? {
+                            "Authorisation": `Bearer ${this.credentials.token}`
                         } : {})
                     }
                 })
@@ -54,7 +63,7 @@ export default class WebApp {
                     }
                     let responseJson = await response.json();
                     // resolve with response if it is is parseable, else resolve with empty object
-                    resolve([null, undefined, NaN].indexOf(responseJson) != -1 ? {} : responseJson);
+                    resolve(([null, undefined, NaN].indexOf(responseJson) != -1 ? {success:false} : responseJson) as JSONResponse);
                 })
                 .catch((reason) => {
                     resolve({
@@ -130,6 +139,7 @@ export default class WebApp {
         if(cred.username && cred.token && cred.tokenExpiration && cred.tokenExpiration <= new Date().getTime()) return cred;
         else return false;
     }
+
     public set credentials(value:Credentials|false){
         if(!value) {
             localStorage.removeItem("token");
@@ -139,11 +149,27 @@ export default class WebApp {
             localStorage.setItem("token", value.token);
             localStorage.setItem("tokenExpiration", String(value.tokenExpiration));
             localStorage.setItem("username", value.username);
+            this.checkCredentials()
         }
     }
-    signOut(){
+
+    async checkCredentials():Promise<boolean>{
+        if(this.credentials){    
+            let response = await this.api("/checkCredentials", {}, true);
+            if(response.success && response.data == this.credentials.username) return true;
+            else{
+                this.signOut();
+                return false;
+            }
+        }else{
+            return false;
+        }
+    }
+
+    signOut():void{
         app.credentials = false;
         app.setState(home);
+        app.showError("You were signed out.");
     }
     /**
      * calls the render function of current state
@@ -167,7 +193,7 @@ export default class WebApp {
     log(...content: any[]): void {
         console.log(...content);
     }
-    showError(errorText: string, options: ErrorOptions) {
+    showError(errorText: string, options?: ErrorOptions) {
         this.log(`showing error ${errorText}`, `opts:`, options);
         this.state.showError(errorText, options);
     }

@@ -297,7 +297,7 @@ export class MaterialIconButton extends Button {
     }
 }
 export class Warning extends FlexContainer {
-    constructor(errorText: string, options: ErrorOptions) {
+    constructor(errorText: string, options?: ErrorOptions) {
         super();
         this.addClass("warning");
         let errorSpan = document.createElement("span");
@@ -306,9 +306,9 @@ export class Warning extends FlexContainer {
         errorSpan.appendChild(document.createTextNode(errorText));
         this.add(errorSpan);
 
-        if (options.retry) this.add(new Button("retry", this.callFn.bind(this, options.retry)));
-        if (options.ok) this.add(new Button("ok", this.callFn.bind(this, options.ok)));
-        if (options.cancel) this.add(new Button("cancel", this.callFn.bind(this, options.cancel)));
+        if (options && options.retry) this.add(new Button("retry", this.callFn.bind(this, options.retry)));
+        if (options && options.ok) this.add(new Button("ok", this.callFn.bind(this, options.ok)));
+        if (options && options.cancel) this.add(new Button("cancel", this.callFn.bind(this, options.cancel)));
 
         this.add(new MaterialIconButton("close", this.close.bind(this)));
     }

@@ -218,20 +218,22 @@ game.renderFunction = async (addElement, app) => {
     addElement(new Footer());
 
     // apply game-objects
-    let game = await TicTacToeGame.createNew(app, gameContainer, gameInfoContainer);
+    let game = await TicTacToeGame.createNew(app, gameContainer, gameInfoContainer, gamePlayerInfo);
     gamePlayerInfo.resolve(game);
 }
 
 gameInfo.renderFunction = async (addElement, app) => {
     let gameContainer = new TicTacToeGameContainer().addClass("readonly") as TicTacToeGameContainer;
     let gameInfoContainer = new Container();
+    let gamePlayerInfo = GamePlayerInfo.procrastinate();
 
     let gameId = app.state.regExResult[1];
     app.log(`gameId: ${gameId}`);
-    let game = new TicTacToeGame(gameId, app, gameContainer, gameInfoContainer);
+    let game = new TicTacToeGame(gameId, app, gameContainer, gameInfoContainer, gamePlayerInfo);
+    gamePlayerInfo.resolve(game)
 
     addElement(new Header());
-    addElement(new Main(gameInfoContainer, new Tile(gameContainer, new GamePlayerInfo(game))));
+    addElement(new Main(gameInfoContainer, new Tile(gameContainer, gamePlayerInfo)));
     addElement(new Footer());
 }
 

@@ -90,7 +90,7 @@ export default class State {
      * @param errorText 
      * @param options 
      */
-    showError(errorText: string, options: ErrorOptions) {
+    showError(errorText: string, options?: ErrorOptions) {
         this.findChildren(Warning).forEach(warning => this.remove(warning));
         this.add(new Warning(errorText, options));
     }

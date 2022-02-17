@@ -22,8 +22,19 @@ export interface Move {
         movePosition: PositionIndex,
         player: string
 }
+export interface GameMetaData{
+    players:{
+        attacker:string|null, 
+        defender:string
+    },
+    gameState:{
+        finished:boolean,
+        winner:string|null
+    }
+};
 
 export class TicTacToeGame {
+    gameMetaData:GameMetaData;
     attacker = {
         icon: "x",
         number: 1
@@ -44,7 +55,6 @@ export class TicTacToeGame {
         "0": "false",
         "false": "0"
     }
-
     moves: Move[];
     gameNumberContainer: BasicElement;
     gameStateContainer: BasicElement;
@@ -55,7 +65,7 @@ export class TicTacToeGame {
      * @param authenticator instance of Authenticator to authenticate requests, only used for unfinished games
      * @param _gameData 
      */
-    constructor(public gameId: string, private app: WebApp, public renderTarget: TicTacToeGameContainer, public infoTarget: Container, public authenticator ? : Authenticator, private _gameData: Number[][] = Array(3).fill(0).map(x => Array(3).fill(null))) {
+    constructor(public gameId: string, private app: WebApp, public renderTarget: TicTacToeGameContainer, public infoTarget: Container,public gamePlayerInfo:GamePlayerInfo, public authenticator ? : Authenticator,  private _gameData: Number[][] = Array(3).fill(0).map(x => Array(3).fill(null))) {
         this.generateInfo();
         this.refreshState();
     }
@@ -205,9 +215,9 @@ export class TicTacToeGame {
      * @param infoTarget the element to show informations about the game
      * @returns Promisw which will be resolved to a TicTacToeGame instance
      */
-    public static async createNew(app: WebApp, renderTarget: TicTacToeGameContainer, infoTarget: Container): Promise < TicTacToeGame > {
+    public static async createNew(app: WebApp, renderTarget: TicTacToeGameContainer, infoTarget: Container, gamePlayerInfo:GamePlayerInfo,): Promise < TicTacToeGame > {
         let response = await app.api("/startNewGame", {}, true);
-        if (response.success) return new TicTacToeGame(response.data.gameId, app, renderTarget, infoTarget, Authenticator.fromGameKey(response.data.gameKey), );
+        if (response.success) return new TicTacToeGame(response.data.gameId, app, renderTarget, infoTarget,gamePlayerInfo, app.credentials ? Authenticator.fromUsername(app.credentials) : Authenticator.fromGameKey(response.data.gameKey));
         else app.showError("Game data could not be refreshed", {
             retry: TicTacToeGame.createNew.bind(undefined, app)
         });
@@ -267,7 +277,11 @@ export class TicTacToeGame {
         let response = await this.app.api("/viewGame", {
             gameId: this.gameId
         });
-        if (response.success) this.setMoves(response.data.moves as Move[]);
+        if (response.success) {
+            this.setMoves(response.data.moves as Move[]);
+            this.gameMetaData = {players:response.data.players, gameState: response.data.gameState} as GameMetaData;
+            this.gamePlayerInfo.resolve(this);
+        }
         else this.app.showError("Game data could not be refreshed", {
             retry: this.refreshState
         });
@@ -353,39 +367,51 @@ export class Authenticator {
     token: string;
     password: string;
 
-    constructor(private authFn: Function) {
+    constructor(private authFn: (target:string, data?:any)=>[gameKey:string, data:any, sendToken:boolean]) {
 
     }
 
-    authenticate(target:string, data?:any):[gameKey:string, data:any] {
-        [target, data] = this.authFn(target, data);
-        return [target, data]
+    authenticate(target:string, data?:any):[gameKey:string, data:any, sendToken:boolean] {
+        return this.authFn(target, data);
     }
 
     public static fromGameKey(gameKey: string): Authenticator {
         let auth = new Authenticator((target:string, data?:any)=>{
             console.log(`authentcating ${target} from Game Key`);
-            if(target == "/makeMove") return [target, {...data,...{gameKey}}]
+            if(target == "/makeMove") return [target, {...data,...{gameKey}}, false];
+            else {
+                console.log("skipping authentication for unknown target");
+                return [target, data, false];
+            }
         });
         auth.gameKey = gameKey;
         return auth;
     }
 
-    public static fromUsername(): Authenticator {
-        return new Authenticator(console.log);
+    public static fromUsername(_credentials): Authenticator {
+        return new Authenticator((target:string, data?:any)=>{
+            console.log(`authenticating ${target} from Username`);
+            if(target == "/makeMove") return [target, {...data}, true];
+            else {
+                console.log("skipping authentication for unknown target");
+                return [target, data, true];
+            }
+        });
     }
 }
 
 export class PlayerInfo extends FlexContainer {
+    isBot:boolean;
     map = {
         "-1": "radio_button_unchecked", // circle (o)
         "1": "close" // cross (x)
     };
-    constructor(public playerName, public role: -1 | 1, public isBot: boolean = false) {
+    constructor(public playerName: string|null, public role: -1 | 1) {
         super();
+        this.isBot = playerName == "bot";
         this.add(new MaterialIcon(this.map[String(role)]).addClass("playerSign"));
-        this.add(new MaterialIcon(isBot ? "precision_manufacturing" : "person").addClass("playerIcon"));
-        this.add(new Span(playerName).addClass("playerName"));
+        this.add(new MaterialIcon(this.isBot ? "precision_manufacturing" : "person").addClass("playerIcon"));
+        this.add(new Span(playerName ? `@${playerName}` : "Guest").addClass("playerName"));
         this.addClass("playerInfo");
     }
     update(nextPlayer){
@@ -397,6 +423,7 @@ export class PlayerInfo extends FlexContainer {
 // currently only guest vs. bot, so no complicated stuff here
 export class GamePlayerInfo extends FlexContainerRow {
     game: TicTacToeGame;
+    resolved:boolean=false;
     constructor(game?:TicTacToeGame) {
         super();
         this.addClass("gamePlayerInfo", "centered");
@@ -409,9 +436,14 @@ export class GamePlayerInfo extends FlexContainerRow {
 
     public resolve(game:TicTacToeGame){
         this.game = game;
-        this.add(new PlayerInfo("Guest", 1));
-        this.add(new Span("vs.").addClass("vs"));
-        this.add(new PlayerInfo("Bot", -1, true));
+        if(this.game.gameMetaData && !this.resolved){
+            this.add(new PlayerInfo(game.gameMetaData.players.attacker, 1));
+            this.add(new Span("vs.").addClass("vs"));
+            this.add(new PlayerInfo(game.gameMetaData.players.defender, -1));
+            this.resolved = true;
+        }else{
+            this.app.log("skipped player-info resolving since no gameMetaData is known or it has already been resolved");
+        }
     }
     public update(nextPlayer){
         this.findChildren(PlayerInfo).forEach(playerInfo=>(playerInfo as PlayerInfo).update(nextPlayer))

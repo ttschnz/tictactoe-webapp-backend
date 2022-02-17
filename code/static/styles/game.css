@@ -1,6 +1,6 @@
 .gameTile {
     background: var(--color200);
-    border-radius: calc(var(--size) * 1px / 6);
+    border-radius: 10%;
     transition: background 0.33s;
     position: relative;
 }
@@ -42,16 +42,16 @@
     grid-template-columns: repeat(3, 1fr);
     height: min(calc(var(--size) * 1vw), calc(var(--size) * 1vh));
     width: min(calc(var(--size) * 1vw), calc(var(--size) * 1vh));
-    min-width: auto;
+    min-width: min(360px,calc(80vw - 40px));
     padding: 20px;
-    min-height: auto;
+    min-height: min(360px,calc(80vw - 40px));
     align-self: center;
     justify-self: center;
 }
 .gameContainer{
     --size: 60;
-    gap: 10px;
-    margin-bottom: 50px;
+    gap: 1%;
+    margin-bottom: 20px;
 }
 
 .gameThumbnail {
@@ -125,3 +125,32 @@
 .playerInfo{
     transition: box-shadow 0.3s, background 0.3s;
 }
+.playerName{
+    direction: ltr;
+}
+
+
+@media (max-width: 550px) {
+    .gamePlayerInfo{
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .playerInfo {
+        justify-content: center;
+        gap:10px;
+    }
+    .tile {
+        padding: 0;
+        background: transparent;
+        box-shadow: none;
+    }
+    
+    main {
+        padding: 0px;
+    }
+    
+    .gameContainer {
+        min-width: min(360px, 80vw);
+        min-height: min(360px, 80vw);
+    }
+  }

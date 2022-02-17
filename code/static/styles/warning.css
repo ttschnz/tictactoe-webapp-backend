@@ -1,6 +1,6 @@
 .warning {
     --padding:10px;
-    position:absolute;
+    position:fixed;
     bottom:0;
     width:100%;
     justify-content: flex-end;
