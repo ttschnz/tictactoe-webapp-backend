@@ -448,7 +448,6 @@ def sendGameInfo():
 def getVersion():
     response = {"success":True}
     try:
-        versionHash = os.popen("git rev-parse HEAD").read().rstrip()
         remoteVersion = os.popen("git ls-remote origin -h HEAD").read().rstrip()
         app.logger.info('versions',remoteVersion, versionHash)
         response["data"]={"versionHash":versionHash, "upToDate":remoteVersion.startswith(versionHash)}
@@ -479,7 +478,8 @@ def robots():
     return "User-agent: *\nDisallow: *"
 
 # only debug if not as module
-if __name__ == "__main__":    
+if __name__ == "__main__":   
+    versionHash = os.popen("git rev-parse HEAD").read().rstrip() 
     # compile ts to js
     print("starting compiling watch...")
     subprocess.Popen(['tsc', '--watch'], cwd="/code")
