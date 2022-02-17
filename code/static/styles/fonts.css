@@ -29,3 +29,10 @@ a:hover .showOnHover{
 .material-icons{
     user-select: none;
 }
+
+.versionHash{
+    font-size: 0.8em;
+    color: inherit;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

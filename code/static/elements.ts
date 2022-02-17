@@ -173,7 +173,7 @@ export class Link extends Container {
 export class ReferralBadge extends Link {
     constructor() {
         let tgt = "https://www.digitalocean.com/?refcode=5431ada19bb0&utm_campaign=Referral_Invite&utm_medium=Referral_Program&utm_source=badge";
-        let badgeImg = new Image("https://web-platforms.sfo2.digitaloceanspaces.com/WWW/Badge%203.svg", "DigitalOcean Referral Badge");
+        let badgeImg = new Image("https://web-platforms.sfo2.digitaloceanspaces.com/WWW/Badge%203.svg", "DigitalOcean Referral Badge").addClass("referralBadge");
         super({
             href: tgt
         }, badgeImg);
@@ -183,8 +183,14 @@ export class ReferralBadge extends Link {
 export class VersionInfo extends Link {
     constructor(versionHash?:string) {
         super({
-            href: `https://github.com/ttschnz/tictactoe_webapp/`
-        }, new Span(versionHash?`version: ${versionHash}`: "source"));
+            href: "#"
+        }, new Span());
+        this.addClass("versionHash");
+        this.update(versionHash);
+    }
+    update(versionHash){
+        (this.findChildren(Span)[0] as Span).update(versionHash ? versionHash : "source");
+        this.element.setAttribute("href", versionHash?`https://github.com/ttschnz/tictactoe_webapp/tree/${versionHash}`:"https://github.com/ttschnz/tictactoe_webapp/");
     }
 }
 
@@ -199,7 +205,7 @@ export class Footer extends BasicElement {
         this.add(new VersionInfo());
         this.add(new ReferralBadge());
         app.api("/version").then((response)=>{
-            (this.findChildren(VersionInfo)[0].findChildren(Span)[0] as Span).update(`version: ${response.data.versionHash}`);
+            (this.findChildren(VersionInfo)[0] as VersionInfo).update(response.data.versionHash);
         })
     }
 }
@@ -328,9 +334,9 @@ export class Warning extends FlexContainer {
     }
 }
 export class Span extends BasicElement {
-    constructor(content: string) {
+    constructor(content?: string) {
         super("span");
-        this.add(document.createTextNode(content));
+        if(content) this.add(document.createTextNode(content));
     }
     update(content: string) {
         this.clear();

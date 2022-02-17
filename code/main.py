@@ -449,7 +449,8 @@ def getVersion():
     response = {"success":True}
     try:
         versionHash = os.popen("git rev-parse HEAD").read()
-        response["data"]={"versionHash":versionHash}
+        remoteVersion = os.popen("git ls-remote origin -h HEAD").read()
+        response["data"]={"versionHash":versionHash, "upToDate":remoteVersion==versionHash}
     except Exception as e:
         response["success"] = False
     return json.dumps(response)
