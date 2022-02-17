@@ -106,6 +106,7 @@
     border-radius: 7.5px;
     box-shadow: 2px 2px 6px 0px var(--color500);
     column-gap: 0px;
+    position: relative;
 }
 
 .playerSign {
@@ -117,7 +118,7 @@
     font-size: 1.7em;
 }
 
-.playerInfo.myTurn {
+.playerInfo.myTurn, .playerInfo.winningPlayer {
     box-shadow: 5px 5px 8px 0px hsl(var(--accentHue) 40% 40% / 0.5);
     background: hsl(var(--accentHue) 23% 50%);
     color: white;
@@ -127,4 +128,14 @@
 }
 .playerName{
     direction: ltr;
+}
+.winningPlayer::after {
+    content: "emoji_events";
+    font-family: "Material Icons";
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translate(-50%, 120%);
+    font-size: 1.3em;
+    color:black
 }

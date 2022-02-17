@@ -139,7 +139,9 @@ export class TicTacToeGame {
         this.infoTarget.add(this.gameStateContainer);
 
         // update game player info if any are found
-        (this.infoTarget.element.parentElement["instance"] as BasicElement).findChildren(GamePlayerInfo, true).forEach(gpi=>(gpi as GamePlayerInfo).update(this.getNextPlayer()))
+        let gamePlayerInfo = (this.infoTarget.element.parentElement["instance"] as BasicElement).findChildren(GamePlayerInfo, true);
+        gamePlayerInfo.forEach(gpi=>(gpi as GamePlayerInfo).update(this.getNextPlayer()));
+        if(this.gameMetaData && this.gameMetaData.gameState.finished) gamePlayerInfo.forEach(gpi=>(gpi as GamePlayerInfo).win(this.evaluatePlayer(this.gameMetaData.gameState.winner)));
     }
 
     /**
@@ -466,6 +468,9 @@ export class PlayerInfo extends FlexContainer {
         if(nextPlayer == this.role) this.addClass("myTurn");
         else this.removeClass("myTurn");
     }
+    win(player){
+        if(player == this.role) this.addClass("winningPlayer");
+    }
 }
 // currently only guest vs. bot, so no complicated stuff here
 export class GamePlayerInfo extends FlexContainerRow {
@@ -494,5 +499,8 @@ export class GamePlayerInfo extends FlexContainerRow {
     }
     public update(nextPlayer){
         this.findChildren(PlayerInfo).forEach(playerInfo=>(playerInfo as PlayerInfo).update(nextPlayer))
+    }
+    public win(player){
+        this.findChildren(PlayerInfo).forEach(playerInfo=>(playerInfo as PlayerInfo).win(player))
     }
 }
