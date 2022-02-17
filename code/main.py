@@ -444,7 +444,15 @@ def sendGameInfo():
         app.logger.error(e)
         response["success"] = False
     return json.dumps(response)
-
+@app.route("/version", methods=["GET", "POST"])
+def getVersion():
+    response = {"success":True}
+    try:
+        versionHash = os.popen("git rev-parse HEAD").read()
+        response["data"]={"versionHash":versionHash}
+    except Exception as e:
+        response["success"] = False
+    return json.dumps(response)
 # just for testing stuff
 @app.route("/test", methods=["GET", "POST"])
 def test():

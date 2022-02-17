@@ -85,7 +85,7 @@ home.renderFunction = (addElement, app) => {
             )
         )
     ));
-    addElement(new Footer());
+    addElement(new Footer(app));
 }
 
 login.renderFunction = (addElement, app) => {
@@ -133,7 +133,7 @@ login.renderFunction = (addElement, app) => {
             )
         )
     ));
-    addElement(new Footer());
+    addElement(new Footer(app));
 }
 
 signup.renderFunction = (addElement, app) => {
@@ -198,7 +198,7 @@ signup.renderFunction = (addElement, app) => {
             )
         )
     ));
-    addElement(new Footer());
+    addElement(new Footer(app));
 }
 
 game.renderFunction = async (addElement, app) => {
@@ -215,7 +215,7 @@ game.renderFunction = async (addElement, app) => {
             gamePlayerInfo
         )
     ));
-    addElement(new Footer());
+    addElement(new Footer(app));
 
     // apply game-objects
     let game = await TicTacToeGame.createNew(app, gameContainer, gameInfoContainer, gamePlayerInfo);
@@ -234,7 +234,7 @@ gameInfo.renderFunction = async (addElement, app) => {
 
     addElement(new Header());
     addElement(new Main(gameInfoContainer, new Tile(gameContainer, gamePlayerInfo)));
-    addElement(new Footer());
+    addElement(new Footer(app));
 }
 
 gameInfo.urlGetter = ((_this: State) => {
@@ -244,5 +244,5 @@ gameInfo.urlGetter = ((_this: State) => {
 errorState.renderFunction = async (addElement, app) => {
     addElement(new Header());
     addElement(new Main(new FlexContainerColumn(new Heading(1, "Error 404"), new Span("not found")).addClass("centered")));
-    addElement(new Footer());
+    addElement(new Footer(app));
 }

@@ -181,10 +181,10 @@ export class ReferralBadge extends Link {
 }
 
 export class VersionInfo extends Link {
-    constructor() {
+    constructor(versionHash?:string) {
         super({
             href: `https://github.com/ttschnz/tictactoe_webapp/`
-        }, new Span('source'));
+        }, new Span(versionHash?`version: ${versionHash}`: "source"));
     }
 }
 
@@ -194,10 +194,13 @@ export class Main extends Container {
     }
 }
 export class Footer extends BasicElement {
-    constructor() {
+    constructor(app:WebApp) {
         super("footer");
         this.add(new VersionInfo());
         this.add(new ReferralBadge());
+        app.api("/version").then((response)=>{
+            (this.findChildren(VersionInfo)[0].findChildren(Span)[0] as Span).update(`version: ${response.data.versionHash}`);
+        })
     }
 }
 export class Header extends BasicElement {
