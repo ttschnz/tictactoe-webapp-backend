@@ -21,7 +21,7 @@ from datetime import datetime
 # add RL-A to importable 
 sys.path.insert(0, '/code/RL-A/')
 from TTTsolver import TicTacToeSolver, boardify
-solver = TicTacToeSolver("presets/policy_3_3_o.pkl","presets/policy_3_3_x.pkl").solveState
+solver = TicTacToeSolver("policy_3_3_o.pkl","policy_3_3_x.pkl").solveState
 
 # initialize flask application with template_folder pointed to public_html (relative to this file)
 app=Flask(__name__)
