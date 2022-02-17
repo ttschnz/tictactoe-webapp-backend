@@ -40,8 +40,8 @@
 .gameThumbnail {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    height: min(calc(var(--size) * 1vw), calc(var(--size) * 1vh));
-    width: min(calc(var(--size) * 1vw), calc(var(--size) * 1vh));
+    height: min(calc(var(--size) * 1vw), calc(var(--size) * var(--vh)));
+    width: min(calc(var(--size) * 1vw), calc(var(--size) * var(--vh)));
     min-width: min(360px,calc(80vw - 40px));
     padding: 20px;
     min-height: min(360px,calc(80vw - 40px));

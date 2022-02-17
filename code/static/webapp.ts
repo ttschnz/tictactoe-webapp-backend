@@ -38,6 +38,11 @@ export default class WebApp {
         window.addEventListener('popstate', (_event: PopStateEvent) => {
             this.render();
         });
+        // custom css variable for vh for mobile (documented: https://allthingssmitty.com/2020/05/11/css-fix-for-100vh-in-mobile-webkit/)
+        window.addEventListener("resize", ()=>{
+            document.body.style.setProperty("--vh", `${window.innerHeight/100}px`);
+        })
+        window.dispatchEvent(new UIEvent("resize"));
         // check if the credentials are valid
         this.checkCredentials()
     }
