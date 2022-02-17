@@ -8,7 +8,7 @@
 @import url(styles/logo.css);
 @import url(styles/warning.css);
 @import url(styles/game.css);
-
+@import url(styles/mobile.css);
 
 :root{
     --navHeight: 50px;

@@ -128,29 +128,3 @@
 .playerName{
     direction: ltr;
 }
-
-
-@media (max-width: 550px) {
-    .gamePlayerInfo{
-        flex-direction: column;
-        align-items: stretch;
-    }
-    .playerInfo {
-        justify-content: center;
-        gap:10px;
-    }
-    .tile {
-        padding: 0;
-        background: transparent;
-        box-shadow: none;
-    }
-    
-    main {
-        padding: 0px;
-    }
-    
-    .gameContainer {
-        min-width: min(360px, 80vw);
-        min-height: min(360px, 80vw);
-    }
-  }
