@@ -128,8 +128,10 @@ export class TicTacToeGame {
             infoSpan.update(`finished: ${this.gameMetaData.gameState.winner == null ? "Guest" : `@${this.gameMetaData.gameState.winner}`} won`);
             // show confetti if you are an observer
             if(!this.authenticator) this.showConfetti();
-            // show confetti if you are the winner
+            // show confetti if you are the winner and signed in
             else if (this.app.credentials && this.gameMetaData.gameState.winner == this.app.credentials.username) this.showConfetti();
+            // show confetti if you are a guest and the winner is a guest (requires a rule that guests can't play against each other)
+            else if (!this.app.credentials && this.gameMetaData.gameState.winner == null) this.showConfetti();
         }
         else if(this.authenticator) infoSpan.update(this.isMyTurn() ? "your turn" : "opponents turn")
         else(this.gameStateContainer.findChildren(Span, true)[0] as Span).update("observer");
