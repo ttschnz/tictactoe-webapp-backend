@@ -19,7 +19,7 @@ from datetime import datetime
 # add RL-A to importable 
 sys.path.insert(0, '/code/RL-A/')
 from TTTsolver import TicTacToeSolver, boardify
-solver = TicTacToeSolver("policy_3_3_o.pkl","policy_3_3_x.pkl").solveState
+solver = TicTacToeSolver("presets/policy_3_3_o.pkl","presets/policy_3_3_x.pkl").solveState
 
 # initialize flask application with template_folder pointed to public_html (relative to this file)
 app=Flask(__name__)
@@ -101,10 +101,13 @@ class Game(db.Model, SerializerMixin):
         board = self.getNumpyGameField()
         winner = self.getWinnerOfBoard(board)
         app.logger.info(f"determined winner: {winner}")
-        if(winner == False or winner == 1 or winner == 0):
+        if(winner == False or winner == 1 or winner == -1):
+            app.logger.info("game finished")
             self.gameFinished = True
             if(winner != False):
                 self.winner = self.attacker if winner == 1 else self.defender
+        else:
+            app.logger.info("game not finished yet")
         db.session.commit()
 
     # transforms the game-id (int) to a hex-string
@@ -406,19 +409,20 @@ def makeMove():
 
         if not game.authenticate(username, gameKey):
             raise ValueError("no entries found")
-
+        if game.gameFinished:
+            raise ValueError("Game finished, no moves allowed")
         db.session.add(Move(game.gameId, int(request.form["movePosition"]), username))
         db.session.commit()
         # re-calculate games state after commit of move
         game.determineState()
 
-        # if gameKey is set user played as guest and therefore playing vs. bot
-        # => calling bot for his move
-        # but only if game is not finished
-        if gameKey and game.getGameState() == Game.ONGOING:
+        # if game is not finished and bot is attacker or defender, let RL-A decide on the next move
+        if game.getGameState() == Game.ONGOING and os.environ["BOT_USERNAME"] in [game.attacker, game.defender]:
             solution = solver(game.getNumpyGameField().reshape((3,3)), "defender")
             app.logger.info(f"found solution to board: {solution}")
             move = Move.fromXY({"y":solution[0], "x":solution[1]},os.environ["BOT_USERNAME"], game.gameId)
+            # re-calculate game's state after RL-A's move
+            game.determineState()
         else:
             app.logger.info("game finished, no moves made by RL-A")
         response = {"success": True}

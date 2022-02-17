@@ -34,7 +34,7 @@ export interface GameMetaData{
 };
 
 export class TicTacToeGame {
-    gameMetaData:GameMetaData;
+    _gameMetaData:GameMetaData;
     attacker = {
         icon: "x",
         number: 1
@@ -86,6 +86,15 @@ export class TicTacToeGame {
         return `${document.location.href}/${this.gameId}`;
     }
 
+    set gameMetaData(value:GameMetaData){
+        this._gameMetaData = value;
+        this.gamePlayerInfo.resolve(this);
+        if(value.gameState.finished) this.renderTarget.gameState = value.gameState;
+    }
+    get gameMetaData():GameMetaData{
+        return this._gameMetaData;
+    }
+
     /**
      * generates elements that should be show inside this.infotarget
      */
@@ -102,6 +111,9 @@ export class TicTacToeGame {
         this.gameStateContainer = new Container(new Span("connected."));
         this.gameStateContainer.addClass("gameStateContainer");
     }
+    showConfetti(){
+        window["party"].confetti(this.renderTarget.element ,{count: 80});
+    }
 
     /**
      * updates the info shown inside this.infoTarget
@@ -109,8 +121,17 @@ export class TicTacToeGame {
     updateInfo() {
         this.app.log("updating info");
         if (!this.gameNumberContainer || !this.gameStateContainer) this.generateInfo();
-        // update the gameState to "your turn" or "opponents turn" depending on who did the last move
-        if (this.authenticator)(this.gameStateContainer.findChildren(Span, true)[0] as Span).update(this.isMyTurn() ? "your turn" : "opponents turn")
+        let infoSpan = (this.gameStateContainer.findChildren(Span, true)[0] as Span);
+        // update the gameState to "your turn" or "opponents turn" depending on who did the last move. "finished: @username" if the game is done, "finished: Guest" if it is a guest
+        if(this.gameMetaData && this.gameMetaData.gameState.finished) {
+            // show who won
+            infoSpan.update(`finished: ${this.gameMetaData.gameState.winner == null ? "Guest" : `@${this.gameMetaData.gameState.winner}`} won`);
+            // show confetti if you are an observer
+            if(!this.authenticator) this.showConfetti();
+            // show confetti if you are the winner
+            else if (this.app.credentials && this.gameMetaData.gameState.winner == this.app.credentials.username) this.showConfetti();
+        }
+        else if(this.authenticator) infoSpan.update(this.isMyTurn() ? "your turn" : "opponents turn")
         else(this.gameStateContainer.findChildren(Span, true)[0] as Span).update("observer");
         this.infoTarget.add(this.gameNumberContainer);
         this.infoTarget.add(this.gameStateContainer);
@@ -176,9 +197,9 @@ export class TicTacToeGame {
         }
     }
     isMyTurn(): boolean {
-        return ((this.getLastMove() ?? {
+        return (((this.getLastMove() ?? {
             moveIndex: -1
-        }).moveIndex) + 1 % 2 == 0;
+        }).moveIndex) + 1) % 2 == 0;
     }
 
     /**
@@ -280,7 +301,7 @@ export class TicTacToeGame {
         if (response.success) {
             this.setMoves(response.data.moves as Move[]);
             this.gameMetaData = {players:response.data.players, gameState: response.data.gameState} as GameMetaData;
-            this.gamePlayerInfo.resolve(this);
+            this.updateInfo();
         }
         else this.app.showError("Game data could not be refreshed", {
             retry: this.refreshState
@@ -290,7 +311,7 @@ export class TicTacToeGame {
 export class TicTacToeGameTile extends BasicElement {
     _game: TicTacToeGame;
     occupied: Boolean = false;
-
+    _disabled: Boolean = false;
     constructor(public x: number, public y: number) {
         super("div");
         this.element.classList.add("gameTile", "loading");
@@ -314,14 +335,24 @@ export class TicTacToeGameTile extends BasicElement {
     get game(): TicTacToeGame {
         return this._game;
     }
+    
+    set disabled(value:Boolean){
+        this._disabled = value;
+        this.addClass("disabled");
+    }
 
+    get disabled(){
+        return this._disabled;
+    }
+    
     async click(_event: MouseEvent): Promise<void> {
-
-        if (!this.occupied) await this.game.makeMove({
-            x: this.x as Coord,
-            y: this.y as Coord
-        }) || this.app.showError("invalid move: it is not your turn", {});
-        else this.app.showError("invalid move: field is occupied", {})
+        if(!this.disabled){
+            if (!this.occupied) await this.game.makeMove({
+                x: this.x as Coord,
+                y: this.y as Coord
+            }) || this.app.showError("invalid move: it is not your turn");
+            else this.app.showError("invalid move: field is occupied")
+        }else this.app.showError("game finished, no more moves possible");
     }
 
     activate(game: TicTacToeGame): void {
@@ -338,7 +369,7 @@ export class TicTacToeGameTile extends BasicElement {
 export class TicTacToeGameContainer extends Container {
     game: TicTacToeGame;
     gameTiles: TicTacToeGameTile[] = [];
-
+    _gameState: GameMetaData["gameState"];
     constructor() {
         super("div");
         this.element.classList.add("gameContainer");
@@ -351,7 +382,16 @@ export class TicTacToeGameContainer extends Container {
             }
         }
     }
-
+    set gameState(value:GameMetaData["gameState"]){
+        this._gameState = value;
+        if(this.gameState.finished) {
+            this.gameTiles.forEach(tile=>tile.disabled=true);
+            this.addClass("gameFinished");
+        }
+    }
+    get gameState(){
+        return this._gameState;
+    }
     activate(game: TicTacToeGame): void {
         this.game = game;
         this.gameTiles.forEach(tile => tile.activate(game));

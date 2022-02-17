@@ -5,12 +5,12 @@
     position: relative;
 }
 
-.gameContainer:not(.readonly) .gameTile[data-occupied-by="false"]:hover,
-.gameContainer:not(.readonly) .gameTile[data-occupied-by="false"]:active {
+.gameContainer:not(.readonly):not(.gameFinished) .gameTile[data-occupied-by="false"]:hover:not(.disabled),
+.gameContainer:not(.readonly):not(.gameFinished) .gameTile[data-occupied-by="false"]:active:not(.disabled) {
     background: var(--color500);
 }
 
-.gameContainer:not(.readonly) .gameTile:is([data-occupied-by="false"]){
+.gameContainer:not(.readonly):not(.gameFinished) .gameTile:is([data-occupied-by="false"]):not(.disabled){
     cursor: pointer;
 }
 
