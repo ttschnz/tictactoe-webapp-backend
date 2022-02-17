@@ -193,8 +193,13 @@ export class TicTacToeGame {
         this.app.log(`last move:`, this.getLastMove());
         if(this.getLastMove() == undefined) return this.attacker.number;
         else {
+            // return 0 if game is finished (nobodies turn)
+            if(this.gameMetaData.gameState.finished) return 0
+            // return attacker if last player was defender
             if(this.defender.number == this.evaluatePlayer(this.getLastMove().player)) return this.attacker.number
+            // return defender if last player was attacker
             if(this.attacker.number == this.evaluatePlayer(this.getLastMove().player)) return this.defender.number
+            // if not loaded yet, return 0 (nobodies turn)
             return 0
         }
     }
