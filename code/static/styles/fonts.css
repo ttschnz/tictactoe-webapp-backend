@@ -36,3 +36,11 @@ a:hover .showOnHover{
     overflow: hidden;
     text-overflow: ellipsis;
 }
+.versionHash.upToDate::before{
+    font-family: "Material Icons";
+    content: "check";
+}
+.versionHash.behind::before {
+    font-family: "Material Icons";
+    content: "query_builder";
+}

@@ -205,9 +205,12 @@ export class Footer extends BasicElement {
         this.add(new VersionInfo());
         this.add(new ReferralBadge());
         app.api("/version").then((response)=>{
-            let versionInfo =(this.findChildren(VersionInfo)[0] as VersionInfo)
-            versionInfo.update(response.data.versionHash);
-            if(!response.data.upToDate) versionInfo.addClass("behind");
+            if(response.success){
+                let versionInfo =(this.findChildren(VersionInfo)[0] as VersionInfo)
+                versionInfo.update(response.data.versionHash);
+                if(!response.data.upToDate) versionInfo.addClass("behind");
+                else versionInfo.addClass("upToDate");
+            }
         })
     }
 }
