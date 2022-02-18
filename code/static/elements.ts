@@ -105,7 +105,7 @@ export class Button extends ClickableElmnt {
 export class PrimaryButton extends Button {
     constructor(public label: string | HTMLElement | BasicElement, public action: State | Function) {
         super(label, action);
-        this.addClass("primary");
+        this.addClass("primaryAction");
     }
 }
 
@@ -228,6 +228,12 @@ export class Tile extends Container {
         this.addClass("tile");
     }
 }
+export class SmallTile extends Tile{
+    constructor(...children: BasicElement[]){
+        super(...children);
+        this.addClass("small");
+    }
+}
 export class Heading extends BasicElement {
     constructor(headingLevel: 1 | 2 | 3 | 4 | 5 | 6, content: string) {
         super(`h${headingLevel}`);
@@ -346,5 +352,41 @@ export class Span extends BasicElement {
     update(content: string) {
         this.clear();
         this.add(document.createTextNode(content));
+    }
+}
+
+export class Popup extends FlexContainer{
+    constructor(...children:BasicElement[]){
+        super();
+        this.add(new SmallTile(
+            new FlexContainerColumn(
+                new MaterialIconButton("clear", this.close.bind(this)).addClass("closeButton"), 
+                ...children)
+            )
+        );
+        this.addClass("hidden", "popup", "centered");
+        // close on click if the primary target of the click was the Popup (and not its content)
+        this.element.addEventListener("click", (evt:PointerEvent)=>{if(evt.target==this.element)this.close()});
+        setTimeout(this.fadeIn.bind(this), 500);
+    }
+    fadeIn():Promise<true>{
+        this.removeClass("hidden");
+        return new Promise((resolve, _reject)=>{
+            setTimeout((()=>{
+                resolve(true);
+            }).bind(this), 330);
+        });
+    }
+    fadeOut():Promise<true>{
+        this.addClass("hidden");
+        return new Promise((resolve, _reject)=>{
+            setTimeout((()=>{
+                resolve(true);
+            }).bind(this), 330);
+        });
+    }
+    async close(){
+        await this.fadeOut();
+        this.element.parentElement.removeChild(this.element);
     }
 }
