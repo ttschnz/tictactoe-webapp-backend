@@ -30,7 +30,7 @@ a:hover .showOnHover{
     user-select: none;
 }
 
-.versionHash{
+.tinySpan, .versionHash{
     font-size: 0.8em;
     color: inherit;
     overflow: hidden;

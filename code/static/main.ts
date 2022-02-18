@@ -2,22 +2,32 @@ import WebApp from "./webapp.js";
 import {
     home,
     game,
+    gameInfo,
+    browseGames,
     user,
+    viewStats,
+    browseUsers,
+    joinCompetition,
     login,
     signup,
-    gameInfo,
     errorState
-} from "./states.js";
+    } from "./states.js";
 // create the app
 export const app = new WebApp();
 window["webApp"] = app;
 // add states to it
 app.addState(home);
-app.addState(user);
 app.addState(game);
-app.addState(signup);
-app.addState(login);
 app.addState(gameInfo);
+app.addState(browseGames);
+app.addState(user);
+app.addState(viewStats);
+app.addState(browseUsers);
+app.addState(joinCompetition);
+app.addState(login);
+app.addState(signup);
+app.addState(errorState);
+
 
 // find the matching state (if there are multiple, just take the first)
 let matchingStates = Object.values(app.states).filter(state => {

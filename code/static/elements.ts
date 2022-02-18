@@ -354,7 +354,12 @@ export class Span extends BasicElement {
         this.add(document.createTextNode(content));
     }
 }
-
+export class TinySpan extends Span{
+    constructor(content?: string) {
+        super(content);
+        this.addClass("tinySpan");
+    }
+}
 export class Popup extends FlexContainer{
     constructor(...children:BasicElement[]){
         super();
@@ -367,7 +372,7 @@ export class Popup extends FlexContainer{
         this.addClass("hidden", "popup", "centered");
         // close on click if the primary target of the click was the Popup (and not its content)
         this.element.addEventListener("click", (evt:PointerEvent)=>{if(evt.target==this.element)this.close()});
-        setTimeout(this.fadeIn.bind(this), 500);
+        setTimeout(this.fadeIn.bind(this), 20);
     }
     fadeIn():Promise<true>{
         this.removeClass("hidden");

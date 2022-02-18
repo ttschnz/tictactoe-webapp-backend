@@ -62,6 +62,9 @@ footer {
     min-width: min(400px, 80vw);
     min-height: 500px;
 }
+.fixedWidth.tile{
+    width: min(400px, 80vw);
+}
 .small.tile{
     min-width: unset;
     min-height: unset;

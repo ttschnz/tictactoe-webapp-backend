@@ -14,7 +14,9 @@ import {
     FlexContainerRow,
     Form,
     PrimaryButton,
-    Span
+    Span,
+    TinySpan,
+    Popup
 } from "./elements.js";
 import {
     GamePlayerInfo,
@@ -53,14 +55,22 @@ home.renderFunction = (addElement, app) => {
                 new HorizontalLine("Your Account"),
                 new FlexContainerColumn(
                     new PrimaryButton(`New game`, game),
-                    new Button(`Join game`, game),
-                    new Button(`View stats`, viewStats),
+                    new Button(`Join game`, ()=>{
+                        addElement(new Popup(new Span("Joining a game is not yet possible.")))
+                    }),
+                    new Button(`View stats`, ()=>{
+                        addElement(new Popup(new Span("Stats are not yet available.")))
+                    }),
                     new Button("Log out", app.signOut)
                 ),
                 new HorizontalLine("General"),
                 new FlexContainerColumn(
-                    new Button("Browse games", browseGames),
-                    new Button("Browse users", browseUsers),
+                    new Button("Browse games", ()=>{
+                        addElement(new Popup(new Span("Browsing games is not yet implemented.")))
+                    }),
+                    new Button("Browse users", ()=>{
+                        addElement(new Popup(new Span("Browsing users is not yet implemented.")))
+                    }),
                     new PrimaryButton("View competition", joinCompetition)
                 )
             )
@@ -75,7 +85,9 @@ home.renderFunction = (addElement, app) => {
             new FlexContainerColumn(
                 new FlexContainerColumn(
                     new Button("Play as guest", game),
-                    new Button("Browse games", browseGames)
+                    new Button("Browse games", ()=>{
+                        addElement(new Popup(new Span("Browsing games is not yet implemented.")))
+                    })
                 ),
                 new HorizontalLine("or"),
                 new FlexContainerColumn(
@@ -90,7 +102,11 @@ home.renderFunction = (addElement, app) => {
 
 login.renderFunction = (addElement, app) => {
     // go home if signed in
-    if(app.credentials) return app.setState(home);
+    if(app.credentials) {
+        app.setState(home);
+        app.showError("You are allready logged in.");
+        return
+    };
     let username = new Input("username", "Username", "text", "", "username");
     let password = new Input("password", "Password", "password", "", "current-password");
     const loginFunction = async ()=>{
@@ -138,7 +154,11 @@ login.renderFunction = (addElement, app) => {
 
 signup.renderFunction = (addElement, app) => {
     // go home if signed in
-    if(app.credentials) return app.setState(home);
+    if(app.credentials) {
+        app.setState(home);
+        app.showError("You are allready logged in.");
+        return
+    };
     let username = new Input("username", "Username", "text", "", "username");
     let password = new Input("password", "Password", "password", "", "current-password");
     let email = new Input("email", "E-Mail", "eamil", "", "email");
@@ -244,5 +264,20 @@ gameInfo.urlGetter = ((_this: State) => {
 errorState.renderFunction = async (addElement, app) => {
     addElement(new Header());
     addElement(new Main(new FlexContainerColumn(new Heading(1, "Error 404"), new Span("not found")).addClass("centered")));
+    addElement(new Footer(app));
+}
+
+joinCompetition.renderFunction = async(addElement, app)=>{
+    addElement(new Header());
+    addElement(new Main(
+        new Tile(
+            new FlexContainerColumn(
+                new Heading(1, "Competition"), 
+                new Span("To prove to you that the reinforcement learning algorithm (RL-A) we developed works and is unbeatable, we developed this web app. You can try your luck and beat the bot. The first player to beat the bot will receive a prize in the form of a bar of chocolate. To participate, you need to create an account and be the first player to beat the RL-A.*"),
+                new PrimaryButton("Sign up", signup),
+                new TinySpan("*We reserve the right to change the rules of the competition at any time without warning, including in such a way that players who would have won, lose their prize.")
+            )
+        ).addClass("fixedWidth")
+    ));
     addElement(new Footer(app));
 }
