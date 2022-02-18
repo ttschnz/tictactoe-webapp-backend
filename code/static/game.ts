@@ -6,8 +6,12 @@ import {
     FlexContainerRow,
     Link,
     MaterialIcon,
-    Span
+    Span,
+    Popup,
+    PrimaryButton,
+    Button
 } from "./elements.js";
+import { game, home } from "./states.js";
 
 export type PositionIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 export type Coord = 0 | 1 | 2;
@@ -133,6 +137,8 @@ export class TicTacToeGame {
             else if (this.app.credentials && this.gameMetaData.gameState.winner == this.app.credentials.username) this.showConfetti();
             // show confetti if you are a guest and the winner is a guest (requires a rule that guests can't play against each other)
             else if (!this.gameMetaData.gameState.isEven && !this.app.credentials && this.gameMetaData.gameState.winner == null) this.showConfetti();
+            // show popup to restart Game
+            this.renderTarget.add(new Popup(new Span("Game finished. Do you want to play again?"), new PrimaryButton("New game", game), new Button("Home", home)));
         }
         else if(this.authenticator) infoSpan.update(this.isMyTurn() ? "your turn" : "opponents turn")
         else(this.gameStateContainer.findChildren(Span, true)[0] as Span).update("observer");
