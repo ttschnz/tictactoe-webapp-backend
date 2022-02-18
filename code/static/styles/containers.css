@@ -62,9 +62,34 @@ footer {
     min-width: min(400px, 80vw);
     min-height: 500px;
 }
-
+.small.tile{
+    min-width: unset;
+    min-height: unset;
+}
 .centered{
     justify-content: center;
     align-items: center;
     text-align: center; 
 }
+
+.popup {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    z-index: 9999999;
+    background: hsla(0deg,0%,0%,0.3);
+    transition: opacity 0.3s;
+}
+.hidden.popup{
+    opacity: 0;
+}
+.popup > .small.tile{
+    transform: scale(1);
+    transition: transform 0.3s;
+}
+.popup.hidden > .small.tile{
+    transform: scale(0.7);
+}
+
