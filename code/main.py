@@ -21,7 +21,7 @@ from datetime import datetime
 # add RL-A to importable 
 sys.path.insert(0, '/code/RL-A/')
 from TTTsolver import TicTacToeSolver, boardify
-solver = TicTacToeSolver("policy_3_3_o.pkl","policy_3_3_x.pkl").solveState
+solver = TicTacToeSolver("presets/policy_p1","presets/policy_p2").solveState
 
 # initialize flask application with template_folder pointed to public_html (relative to this file)
 app=Flask(__name__)
@@ -96,6 +96,7 @@ class Game(db.Model, SerializerMixin):
     attacker = db.Column(db.String(16), db.ForeignKey("users.username"))
     defender = db.Column(db.String(16), db.ForeignKey("users.username"))
     winner = db.Column(db.String(16), db.ForeignKey("users.username"))
+    isEven = db.Column(db.Boolean(), default=False)
     gameFinished = db.Column(db.Boolean(), default=False, nullable=False)
     timestamp = db.Column(db.TIMESTAMP,server_default=db.text('CURRENT_TIMESTAMP'))
     ONGOING=0
@@ -117,6 +118,8 @@ class Game(db.Model, SerializerMixin):
             self.gameFinished = True
             if(winner != False):
                 self.winner = self.attacker if winner == 1 else self.defender
+            else:
+                self.isEven = True
         else:
             app.logger.info("game not finished yet")
         db.session.commit()
@@ -429,7 +432,7 @@ def makeMove():
 
         # if game is not finished and bot is attacker or defender, let RL-A decide on the next move
         if game.getGameState() == Game.ONGOING and os.environ["BOT_USERNAME"] in [game.attacker, game.defender]:
-            solution = solver(game.getNumpyGameField().reshape((3,3)), "defender")
+            solution = solver(game.getNumpyGameField().reshape((3,3)), "defender", app.logger.info)
             app.logger.info(f"found solution to board: {solution}")
             move = Move.fromXY({"y":solution[0], "x":solution[1]},os.environ["BOT_USERNAME"], game.gameId)
             # re-calculate game's state after RL-A's move
@@ -450,7 +453,7 @@ def sendGameInfo():
     try:
         game = Game.findByHex(request.form["gameId"])
         moves = game.getMoves()
-        response["data"]={"moves": [move.to_dict() for move in moves], "gameState":{"finished":game.gameFinished, "winner":game.winner}, "players":{"attacker": game.attacker, "defender": game.defender}}
+        response["data"]={"moves": [move.to_dict() for move in moves], "gameState":{"finished":game.gameFinished, "winner":game.winner, "isEven":game.isEven}, "players":{"attacker": game.attacker, "defender": game.defender}}
         
         # Move.findByGame()
         # gameId = int("0x" + request.form["gameId"], 16)

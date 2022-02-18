@@ -29,7 +29,8 @@ export interface GameMetaData{
     },
     gameState:{
         finished:boolean,
-        winner:string|null
+        winner:string|null,
+        isEven: boolean
     }
 };
 
@@ -125,13 +126,13 @@ export class TicTacToeGame {
         // update the gameState to "your turn" or "opponents turn" depending on who did the last move. "finished: @username" if the game is done, "finished: Guest" if it is a guest
         if(this.gameMetaData && this.gameMetaData.gameState.finished) {
             // show who won
-            infoSpan.update(`finished: ${this.gameMetaData.gameState.winner == null ? "Guest" : `@${this.gameMetaData.gameState.winner}`} won`);
+            infoSpan.update(`finished: ${this.gameMetaData.gameState.isEven ? "nobody" : this.gameMetaData.gameState.winner == null ? "Guest" : `@${this.gameMetaData.gameState.winner}`} won`);
             // show confetti if you are an observer
             if(!this.authenticator) this.showConfetti();
             // show confetti if you are the winner and signed in
             else if (this.app.credentials && this.gameMetaData.gameState.winner == this.app.credentials.username) this.showConfetti();
             // show confetti if you are a guest and the winner is a guest (requires a rule that guests can't play against each other)
-            else if (!this.app.credentials && this.gameMetaData.gameState.winner == null) this.showConfetti();
+            else if (!this.gameMetaData.gameState.isEven && !this.app.credentials && this.gameMetaData.gameState.winner == null) this.showConfetti();
         }
         else if(this.authenticator) infoSpan.update(this.isMyTurn() ? "your turn" : "opponents turn")
         else(this.gameStateContainer.findChildren(Span, true)[0] as Span).update("observer");
@@ -141,7 +142,7 @@ export class TicTacToeGame {
         // update game player info if any are found
         let gamePlayerInfo = (this.infoTarget.element.parentElement["instance"] as BasicElement).findChildren(GamePlayerInfo, true);
         gamePlayerInfo.forEach(gpi=>(gpi as GamePlayerInfo).update(this.getNextPlayer()));
-        if(this.gameMetaData && this.gameMetaData.gameState.finished) gamePlayerInfo.forEach(gpi=>(gpi as GamePlayerInfo).win(this.evaluatePlayer(this.gameMetaData.gameState.winner)));
+        if(this.gameMetaData && this.gameMetaData.gameState.finished && !this.gameMetaData.gameState.isEven) gamePlayerInfo.forEach(gpi=>(gpi as GamePlayerInfo).win(this.evaluatePlayer(this.gameMetaData.gameState.winner)));
     }
 
     /**
