@@ -301,9 +301,8 @@ userInfo.renderFunction = async(addElement, app, ..._args)=>{
         if(response.success){
             gameBrowser.displayData(response.data.games);
             userInfo.displayData(response.data.games);
-        }else app.showError("Could not load user-data");
+        }else app.setState(errorState);
     })
-    let games:PostGameInfo[];
 }
 
 userInfo.urlGetter = (_args) => {
