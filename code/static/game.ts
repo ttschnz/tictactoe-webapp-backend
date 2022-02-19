@@ -15,7 +15,7 @@ import {
     FlexContainerColumn,
     ClickableElmnt
 } from "./elements.js";
-import { game, home } from "./states.js";
+import { game, home,gameInfo } from "./states.js";
 
 export type PositionIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 export type Coord = 0 | 1 | 2;
@@ -627,7 +627,7 @@ export class GameBrowser extends Tile{
             this.add(
                 new FlexContainerColumn(
                     new Heading(2, `#${game.gameId.toString(16)}`),
-                    new ClickableElmnt(new TicTacToeMiniature(game), gameInfo, undefined, game.gameId.toString(16)),
+                    new ClickableElmnt(new TicTacToeMiniature(game), gameInfo),
                     new Container(
                         new Span("Attacker"),
                         new Span(`@${game.attacker}`)

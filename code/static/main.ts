@@ -34,8 +34,8 @@ app.addState(userInfo);
 // find the matching state (if there are multiple, just take the first)
 let matchingStates = Object.values(app.states).filter(state => {
     // if the url matches the path
-    console.log(state.getUrl(), state.regEx, document.location.pathname);
-    if(state.getUrl() == document.location.pathname) return true;
+    console.log(state.url, state.regEx, document.location.pathname);
+    if(state.url == document.location.pathname) return true;
     // if the regex matches the path
     if(state.regEx && state.regEx.test(document.location.pathname)) return true;
 });
