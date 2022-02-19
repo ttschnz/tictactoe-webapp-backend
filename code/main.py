@@ -86,7 +86,7 @@ class User(db.Model, SerializerMixin):
         return user
     
     def getGames(self):
-        return db.session.query(Game).filter(Game.attacker == username).union(db.session.query(Game).filter(Game.defender==username)).order_by(db.desc(Game.gameId)).all()
+        return db.session.query(Game).filter(Game.attacker == self.username).union(db.session.query(Game).filter(Game.defender==self.username)).order_by(db.desc(Game.gameId)).all()
 
 # table to store games and their players to
 class Game(db.Model, SerializerMixin):
@@ -153,9 +153,11 @@ class Game(db.Model, SerializerMixin):
         info["attacker"] = self.attacker
         info["defender"] = self.defender
         info["gameId"] = self.gameId
-        info["winner"] = self.getWinner()
+        info["winner"] = self.winner
         info["gameField"] = self.getGameField()
         info["state"] = self.getGameState()
+        info["isEven"] = self.isEven
+        return info
 
     # gets the winner of game (string), None if even, False if ongoing
     def getWinner(self):
@@ -380,13 +382,19 @@ def returnGameInfo(gameId):
 
 @app.route("/user/<username>", methods=["POST"])
 def returnUserPage(username):
-    user = User.find(username).one()
-    if not user:
-        abort(404)
-    games = []
-    for game in user.getGames():
-        games.append(game.getGameInfo())
-    return json.dumps({"user":user, "games": games})
+    response = {"success":True}
+    try:
+        user = User.find(username).one()
+        if not user:
+            abort(404)
+        games = []
+        for game in user.getGames():
+            games.append(game.getGameInfo())
+        response["data"]={"user":user.username, "games": games}
+    except Exception as e:
+        response["success"] = False
+        app.logger.error(e)
+    return json.dumps(response)
 
 @app.route("/checkCredentials", methods=["POST"])
 def checkCredentials():

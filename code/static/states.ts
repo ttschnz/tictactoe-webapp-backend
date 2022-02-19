@@ -21,7 +21,10 @@ import {
 import {
     GamePlayerInfo,
     TicTacToeGame,
-    TicTacToeGameContainer
+    TicTacToeGameContainer,
+    UserInfo,
+    GameBrowser,
+    PostGameInfo
 } from "./game.js";
 import { Credentials } from "./webapp.js";
 
@@ -30,6 +33,7 @@ export const game = new State(1, "Game", "/game");
 export const gameInfo = new State(1.2, "Game", "/game/", RegExp("^\/game\/(.*)$"));
 export const browseGames = new State(1.3, "Browse Games", "/games");
 export const user = new State(2, "User", "/user");
+export const userInfo = new State(2.3, "User", "/user/", RegExp("^\/user\/(.*)$"));
 export const viewStats = new State(2.2, "Stats", "/account");
 export const browseUsers = new State(2.1, "Browse Users", "/games");
 
@@ -280,4 +284,28 @@ joinCompetition.renderFunction = async(addElement, app)=>{
         ).addClass("fixedWidth")
     ));
     addElement(new Footer(app));
+}
+
+userInfo.renderFunction = async(addElement, app, ..._args)=>{
+    let username = app.state.regExResult[1];
+    let userInfo = new UserInfo(username, true);
+    let gameBrowser = new GameBrowser(username, true);
+    addElement(new Header());
+    addElement(new Main(
+        userInfo,
+        gameBrowser
+    ));
+    addElement(new Footer(app));
+
+    app.api(`/user/${username.split("@").join("")}`).then((response)=>{
+        if(response.success){
+            gameBrowser.displayData(response.data.games);
+            userInfo.displayData(response.data.games);
+        }else app.showError("Could not load user-data");
+    })
+    let games:PostGameInfo[];
+}
+
+userInfo.urlGetter = (_args) => {
+    return userInfo.regExResult[1];
 }
