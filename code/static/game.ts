@@ -580,16 +580,16 @@ export class UserInfo extends BasicElement{
                 this.winCount
             ).addClass("userStatsContainer","centered"),
             new FlexContainerColumn(
-                new Heading(2,"Streak"),
-                this.streakCount
-            ).addClass("userStatsContainer","centered"),
-            new FlexContainerColumn(
                 new Heading(2,"Games lost"),
                 this.looseCount
             ).addClass("userStatsContainer","centered"),
             new FlexContainerColumn(
                 new Heading(2,"Ongoing games"),
                 this.ongoingCount
+            ).addClass("userStatsContainer","centered"),
+            new FlexContainerColumn(
+                new Heading(2,"Streak"),
+                this.streakCount
             ).addClass("userStatsContainer","centered")
         ).addClass("userStatsOverview"));
         if(!lazy) this.loadData().then(data=>this.displayData(data));
