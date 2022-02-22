@@ -121,19 +121,20 @@ export class TicTacToeGame {
         if(this.app.isSecureContext()) this.gameNumberContainer = new Link({
             action: (() => {
                 navigator.clipboard.writeText(this.gameUrl);
-            }).bind(this)
-        }, new FlexContainer(
-            new MaterialIcon("tag"),
-            new Span(this.gameId),
-             new MaterialIcon("content_copy").addClass("showOnHover")
-        )).addClass("noTextDecoration");
+            }).bind(this)}, 
+            new FlexContainer(
+                new MaterialIcon("tag"),
+                new Span(this.gameId),
+                new MaterialIcon("content_copy").addClass("showOnHover")
+            ).addClass("centered", "gameNumberContainer")
+        ).addClass("noTextDecoration");
+
         else this.gameNumberContainer = new Container(
             new FlexContainer(
                 new MaterialIcon("tag"),
                 new Span(this.gameId)
-            )
+            ).addClass("centered", "gameNumberContainer")
         );
-        this.gameNumberContainer.addClass("centered", "gameNumberContainer");
 
         this.gameStateContainer = new Container(new Span("connected."));
         this.gameStateContainer.addClass("gameStateContainer");
