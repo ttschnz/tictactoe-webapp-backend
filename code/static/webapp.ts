@@ -109,11 +109,9 @@ export default class WebApp {
      * Changes the location of the url to a given states id
      * @param id Identifier of state desired to be changed to
      */
-    public setState(state: State, url:string=document.location.pathname) {
-        // save state
-        this.log(`adding state`, state, `${url}`);
-        this.states[state.stateId] = state;
-        state.urlGetter = ()=>url;
+    public setState(state: State, url?:string) {
+        if(url) state.urlGetter = ()=>url;
+        else state.urlGetter = ()=>state._url;
         if (state.regEx) state.regExResult = url.match(state.regEx);
         // set state
         this.state = state;

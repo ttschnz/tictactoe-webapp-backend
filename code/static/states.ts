@@ -288,11 +288,11 @@ joinCompetition.renderFunction = async(addElement, app)=>{
 
 userInfo.renderFunction = async(addElement, app, ..._args)=>{
     let username = app.getState().regExResult[1];
-    let userInfo = new UserInfo(username, true);
+    let info = new UserInfo(username, true);
     let gameBrowser = new GameBrowser(username, true);
     addElement(new Header());
     addElement(new Main(
-        userInfo,
+        info,
         gameBrowser
     ));
     addElement(new Footer(app));
@@ -300,9 +300,9 @@ userInfo.renderFunction = async(addElement, app, ..._args)=>{
     app.api(`/user/${username.split("@").join("")}`).then((response)=>{
         if(response.success){
             gameBrowser.displayData(response.data.games);
-            userInfo.displayData(response.data.games);
+            info.displayData(response.data.games);
         }else app.setState(errorState);
-    })
+    });
 }
 
 userInfo.urlGetter = (_args) => {
