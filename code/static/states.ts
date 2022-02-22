@@ -251,7 +251,7 @@ gameInfo.renderFunction = async (addElement, app) => {
     let gameInfoContainer = new Container();
     let gamePlayerInfo = GamePlayerInfo.procrastinate();
 
-    let gameId = app.state.regExResult[1];
+    let gameId = app.getState().regExResult[1];
     app.log(`gameId: ${gameId}`);
     let game = new TicTacToeGame(gameId, app, gameContainer, gameInfoContainer, gamePlayerInfo);
     gamePlayerInfo.resolve(game)
@@ -287,7 +287,7 @@ joinCompetition.renderFunction = async(addElement, app)=>{
 }
 
 userInfo.renderFunction = async(addElement, app, ..._args)=>{
-    let username = app.state.regExResult[1];
+    let username = app.getState().regExResult[1];
     let userInfo = new UserInfo(username, true);
     let gameBrowser = new GameBrowser(username, true);
     addElement(new Header());

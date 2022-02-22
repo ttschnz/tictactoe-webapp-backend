@@ -73,7 +73,7 @@ export class BasicElement {
 }
 
 export class ClickableElmnt extends BasicElement {
-    constructor(public label: string | HTMLElement | BasicElement, public action: State | Function, tagName: string = "div") {
+    constructor(public label: string | HTMLElement | BasicElement, public action: State | Function | string, tagName: string = "div") {
         super(tagName);
         this.addClass("clickable");
         this.element.addEventListener("click", this.click.bind(this))
@@ -87,6 +87,7 @@ export class ClickableElmnt extends BasicElement {
      */
     click(_event: Event) {
         if (this.action instanceof State) this.app.setState(this.action);
+        else if (typeof(this.action) == "string") this.app.loadStateByURL(this.action);
         else this.action();
     }
 }

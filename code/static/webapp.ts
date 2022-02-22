@@ -7,7 +7,7 @@ import State, {
 import {
     StateId
 } from "./state.js";
-import { home } from "./states.js";
+import { errorState, home } from "./states.js";
 
 export type JSONResponse = {
     success: boolean,
@@ -45,6 +45,24 @@ export default class WebApp {
         window.dispatchEvent(new UIEvent("resize"));
         // check if the credentials are valid
         this.checkCredentials()
+    }
+    /**
+     * figures out what state is supposed to be loaded with a given url
+     * @param url url to load
+     */
+    loadStateByURL(url?:string){     
+        this.log("loading state by url:", url);
+        if(url == undefined) url = document.location.pathname;
+        // find the matching state (if there are multiple, just take the first)
+        let matchingStates = Object.values(app.states).filter(state => {
+            // if the url matches the path
+            console.log(state.url, state.regEx, url);
+            if(state.url == url) return true;
+            // if the regex matches the path
+            if(state.regEx && state.regEx.test(url)) return true;
+        });
+        this.log(`found ${Object.values(matchingStates??{}).length} matching states:`, matchingStates)
+        this.setState((matchingStates ?? [])[0] ?? errorState, url);
     }
 
     api(target: string, data = {}, sendToken = false): Promise < JSONResponse > {
@@ -91,35 +109,36 @@ export default class WebApp {
      * Changes the location of the url to a given states id
      * @param id Identifier of state desired to be changed to
      */
-    public setState(state: State) {
-        this.state = state;
-    }
-    /**
-     * sets the state to a given state and renders it
-     */
-    public set state(state: State) {
+    public setState(state: State, url:string=document.location.pathname) {
         // save state
-        this.log(`adding state`, state, `${document.location.pathname}`);
+        this.log(`adding state`, state, `${url}`);
         this.states[state.stateId] = state;
-        if (state.regEx) state.regExResult = document.location.pathname.match(state.regEx);
+        state.urlGetter = ()=>url;
+        if (state.regEx) state.regExResult = url.match(state.regEx);
         // set state
-        window.history.pushState(state.stateId, state.title, state.url);
+        this.state = state;
         // set the title to the title of the state
         document.title = `${state.title} - TicTacToe`;
         // render it
         this.render();
     }
     /**
+     * sets the state to a given state and renders it
+     */
+    private set state(state: State) {
+        window.history.pushState(state.stateId, state.title, state.url);
+    }
+    /**
      * returns the current state
      */
-    public getState(state: State) {
+    public getState() {
         return this.state
     }
     /**
      * gets the current state by the id saved in window.history 
      * using the id as index in this.states
      */
-    public get state() {
+    private get state() {
         return this.states[window.history.state];
     }
     /**

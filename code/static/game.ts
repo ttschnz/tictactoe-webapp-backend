@@ -627,7 +627,7 @@ export class GameBrowser extends Tile{
             this.add(
                 new FlexContainerColumn(
                     new Heading(2, `#${game.gameId.toString(16)}`),
-                    new ClickableElmnt(new TicTacToeMiniature(game), gameInfo),
+                    new ClickableElmnt(new TicTacToeMiniature(game), `/game/${game.gameId.toString(16)}`),
                     new Container(
                         new Span("Attacker"),
                         new Span(`@${game.attacker}`)
