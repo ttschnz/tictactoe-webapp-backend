@@ -225,6 +225,14 @@
     height: 100%;
 }
 
+.gameTitleRow{
+    position: relative;
+}
+
+.continueGame{
+    position: absolute;
+    right: 0;
+}
 .gameBrowser:empty {
     width: 100%;
     position: relative;

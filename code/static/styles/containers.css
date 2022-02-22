@@ -22,6 +22,7 @@ main {
     flex-direction: column;
     padding: 45px;
     grid-row: 2;
+    position: relative;
 }
 header,
 footer {
@@ -72,6 +73,7 @@ footer {
     background: white;
     min-width: min(400px, 80vw);
     min-height: 500px;
+    position: relative;
 }
 .fixedWidth.tile{
     width: min(400px, 80vw);

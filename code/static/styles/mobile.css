@@ -1,32 +1,37 @@
-
 @media (max-width: 550px) {
-    .gamePlayerInfo{
+    .gamePlayerInfo {
         flex-direction: column;
         align-items: stretch;
     }
+
     .playerInfo {
         justify-content: center;
-        gap:10px;
+        gap: 10px;
     }
+
     .tile {
         padding: 0;
         background: transparent;
         box-shadow: none;
     }
-    
+
     main {
         padding: 0px;
-        background:white;
+        background: white;
         padding-bottom: 100px;
     }
-    
+
     .gameContainer {
         min-width: min(360px, 80vw);
         min-height: min(360px, 80vw);
     }
 
-    .userInfo{
+    .userInfo {
         border-radius: 0;
         box-shadow: none;
     }
-  }
+
+    main>.homeLink {
+        display: none;
+    }
+}

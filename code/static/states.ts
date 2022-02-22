@@ -16,7 +16,8 @@ import {
     PrimaryButton,
     Span,
     TinySpan,
-    Popup
+    Popup,
+    HomeLink
 } from "./elements.js";
 import {
     GamePlayerInfo,
@@ -63,7 +64,8 @@ home.renderFunction = (addElement, app) => {
                         addElement(new Popup(new Span("Joining a game is not yet possible.")))
                     }),
                     new Button(`View stats`, ()=>{
-                        addElement(new Popup(new Span("Stats are not yet available.")))
+                        if(app.credentials) app.loadStateByURL(`/user/${app.credentials.username}`);
+                        else app.loadStateByURL(`/user/@bot`);
                     }),
                     new Button("Log out", app.signOut)
                 ),
@@ -88,7 +90,7 @@ home.renderFunction = (addElement, app) => {
             ).addClass("centered"),
             new FlexContainerColumn(
                 new FlexContainerColumn(
-                    new Button("Play as guest", game),
+                    new PrimaryButton("Play as guest", game),
                     new Button("Browse games", ()=>{
                         addElement(new Popup(new Span("Browsing games is not yet implemented.")))
                     })
@@ -151,7 +153,7 @@ login.renderFunction = (addElement, app) => {
             new FlexContainerColumn(
                 new Button("Create account", signup)
             )
-        )
+        ).addHomeLink()
     ));
     addElement(new Footer(app));
 }
@@ -220,7 +222,7 @@ signup.renderFunction = (addElement, app) => {
             new FlexContainerColumn(
                 new Button("Log in", login)
             )
-        )
+        ).addHomeLink()
     ));
     addElement(new Footer(app));
 }
@@ -237,7 +239,7 @@ game.renderFunction = async (addElement, app) => {
         new Tile(
             gameContainer,
             gamePlayerInfo
-        )
+        ).addHomeLink()
     ));
     addElement(new Footer(app));
 
@@ -260,7 +262,13 @@ gameInfo.renderFunction = async (addElement, app) => {
     gamePlayerInfo.resolve(game)
 
     addElement(new Header());
-    addElement(new Main(gameInfoContainer, new Tile(gameContainer, gamePlayerInfo)));
+    addElement(new Main(
+        gameInfoContainer, 
+        new Tile(
+            gameContainer,
+            gamePlayerInfo
+        ).addHomeLink()
+    ));
     addElement(new Footer(app));
 }
 
@@ -270,7 +278,12 @@ gameInfo.urlGetter = ((_this: State) => {
 
 errorState.renderFunction = async (addElement, app) => {
     addElement(new Header());
-    addElement(new Main(new FlexContainerColumn(new Heading(1, "Error 404"), new Span("not found")).addClass("centered")));
+    addElement(new Main(
+        new FlexContainerColumn(
+            new Heading(1, "Error 404"), 
+            new Span("not found")
+        ).addHomeLink().addClass("centered")
+    ));
     addElement(new Footer(app));
 }
 
@@ -284,7 +297,7 @@ joinCompetition.renderFunction = async(addElement, app)=>{
                 new PrimaryButton("Sign up", signup),
                 new TinySpan("*We reserve the right to change the rules of the competition at any time without warning, including in such a way that players who would have won, lose their prize.")
             )
-        ).addClass("fixedWidth")
+        ).addHomeLink().addClass("fixedWidth")
     ));
     addElement(new Footer(app));
 }
@@ -295,6 +308,7 @@ userInfo.renderFunction = async(addElement, app, ..._args)=>{
     let gameBrowser = new GameBrowser(username, true);
     addElement(new Header());
     addElement(new Main(
+        new HomeLink(),
         info,
         gameBrowser
     ));

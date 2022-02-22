@@ -100,13 +100,13 @@ export class Button extends ClickableElmnt {
      * @param label Label (innerText) of button
      * @param action State or function which a click event should trigger
      */
-    constructor(public label: string | HTMLElement | BasicElement, public action: State | Function) {
+    constructor(public label: string | HTMLElement | BasicElement, public action: State | Function | string) {
         super(label, action, "button");
         this.addClass("button");
     }
 }
 export class PrimaryButton extends Button {
-    constructor(public label: string | HTMLElement | BasicElement, public action: State | Function) {
+    constructor(public label: string | HTMLElement | BasicElement, public action: State | Function | string) {
         super(label, action);
         this.addClass("primaryAction");
     }
@@ -146,6 +146,10 @@ export class Container extends BasicElement {
             this.add(child);
         }
     }
+    addHomeLink():Container{
+        this.add(new HomeLink());
+        return this;
+    }
 }
 export class Image extends BasicElement {
     constructor(public src: string, public alt ? : string) {
@@ -160,7 +164,7 @@ export class Link extends Container {
         href,
         action
     }: {
-        href ? : string;action ? : Function
+        href ? : string;action ?: Function
     }, ...children: BasicElement[]) {
         super("a", children);
         if (action) this.element.addEventListener("click", (event: MouseEvent) => {
@@ -401,5 +405,14 @@ export class Popup extends FlexContainer{
     async close(){
         await this.fadeOut();
         this.element.parentElement.removeChild(this.element);
+    }
+}
+
+export class HomeLink extends Link{
+    constructor(){
+        super({action: ()=>{
+            app.setState(home);
+        }}, new Span("<- home"))
+        this.addClass("homeLink");
     }
 }

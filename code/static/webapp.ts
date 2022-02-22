@@ -173,6 +173,8 @@ export default class WebApp {
             localStorage.removeItem("token");
             localStorage.removeItem("tokenExpiration");
             localStorage.removeItem("username");
+            app.setState(home);
+            app.showError("You were signed out.");
         }else{    
             localStorage.setItem("token", value.token);
             localStorage.setItem("tokenExpiration", String(value.tokenExpiration));
@@ -196,8 +198,6 @@ export default class WebApp {
 
     signOut():void{
         app.credentials = false;
-        app.setState(home);
-        app.showError("You were signed out.");
     }
     /**
      * calls the render function of current state

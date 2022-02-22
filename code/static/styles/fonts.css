@@ -49,3 +49,14 @@ a:hover .showOnHover{
 .underlined{
     text-decoration: underline;
 }
+
+.homeLink {
+    position: absolute;
+    bottom: 15px;
+}
+
+main > .homeLink {
+    top: 15px;
+    left: 15px;
+    bottom: unset;
+}

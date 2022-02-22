@@ -86,7 +86,7 @@ export class TicTacToeGame {
      */
     constructor(public gameId: string, private app: WebApp, public renderTarget?: TicTacToeGameContainer, public infoTarget?: Container,public gamePlayerInfo?:GamePlayerInfo, public authenticator ? : Authenticator,  private _gameData: Number[][] = Array(3).fill(0).map(x => Array(3).fill(null))) {
         this.generateInfo();
-        if(this.renderTarget) this.refreshState();
+        if(this.renderTarget) this.refreshState(true);
     }
 
     set gameData(data: Number[][]) {
@@ -146,7 +146,7 @@ export class TicTacToeGame {
     /**
      * updates the info shown inside this.infoTarget
      */
-    updateInfo() {
+    updateInfo(firstUpdate = false) {
         this.app.log("updating info");
         if (!this.gameNumberContainer || !this.gameStateContainer) this.generateInfo();
         let infoSpan = (this.gameStateContainer.findChildren(Span, true)[0] as Span);
@@ -160,8 +160,8 @@ export class TicTacToeGame {
             if (this.app.credentials && this.gameMetaData.gameState.winner == this.app.credentials.username) this.showConfetti();
             // show confetti if you are a guest and the winner is a guest (requires a rule that guests can't play against each other)
             else if (!this.gameMetaData.gameState.isEven && !this.app.credentials && this.gameMetaData.gameState.winner == null) this.showConfetti();
-            // show popup to restart Game if the player is a part of the game
-            if (this.authenticator) this.renderTarget.add(new Popup(new Span("Game finished. Do you want to play again?"), new PrimaryButton("New game", game), new Button("Home", home)));
+            // show popup to restart Game if the game has not just been loaded and the player is a part of the game
+            if (!firstUpdate && this.authenticator && this.app.credentials && [this.gameMetaData.players.attacker, this.gameMetaData.players.defender].indexOf(this.app.credentials.username) >= 0) this.app.getState().add(new Popup(new Span("Game finished. Do you want to play again?"), new PrimaryButton("New game", game), new Button("Home", home)));
         }
         else if(this.authenticator) infoSpan.update(this.isMyTurn() ? "your turn" : "opponents turn")
         else(this.gameStateContainer.findChildren(Span, true)[0] as Span).update("observer");
@@ -333,14 +333,14 @@ export class TicTacToeGame {
     /**
      * requests the games state from the server and renders it
      */
-    async refreshState(): Promise < void > {
+    async refreshState(firstUpdate = false): Promise < void > {
         let response = await this.app.api("/viewGame", {
             gameId: this.gameId
         });
         if (response.success) {
             this.setMoves(response.data.moves as Move[]);
             this.gameMetaData = {players:response.data.players, gameState: response.data.gameState} as GameMetaData;
-            this.updateInfo();
+            this.updateInfo(firstUpdate);
         }
         else this.app.showError("Game data could not be refreshed", {
             retry: this.refreshState
@@ -659,8 +659,10 @@ export class GameBrowser extends FlexContainerRow{
                             new FlexContainerColumn(
                                 new FlexContainerRow(
                                     new Heading(2,`#${game.gameId.toString(16)}`),
-                                    new Span(`- ${game.isFinished && !game.isEven ? game.winner == this.username ? "won" : "defeated" : game.isEven ? "even" : "ongoing"}`)
-                                ).addClass("alignCenter"),
+                                    new Span(`- ${game.isFinished && !game.isEven ? game.winner == this.username ? "won" : "defeated" : game.isEven ? "even" : "ongoing"}`),
+                                    // add a "continue" button if the user is part of the game and it is not finished
+                                    (!game.isFinished && this.app.credentials && [game.attacker, game.defender].indexOf(this.app.credentials.username) >=0) ? new PrimaryButton("continue", `/game/${game.gameId.toString(16)}`).addClass("continueGame") : undefined
+                                ).addClass("alignCenter", "gameTitleRow"),
                                 new TicTacToeMiniature(game)
                             ), 
                             `/game/${game.gameId.toString(16)}`),
