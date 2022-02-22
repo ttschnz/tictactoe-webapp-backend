@@ -30,7 +30,7 @@ export class BasicElement {
     add(...elements: Array < BasicElement | HTMLElement | Text > ): void {
         for (let element of elements) {
             if (element instanceof HTMLElement || element instanceof Text) this.element.appendChild(element);
-            else this.element.appendChild(element.element);
+            else if(element) this.element.appendChild(element.element);
             if (element instanceof BasicElement && this.children.indexOf(element) < 0) this.children.push(element);
         }
     }
