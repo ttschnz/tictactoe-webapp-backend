@@ -161,7 +161,7 @@ export class TicTacToeGame {
             // show confetti if you are a guest and the winner is a guest (requires a rule that guests can't play against each other)
             else if (!this.gameMetaData.gameState.isEven && !this.app.credentials && this.gameMetaData.gameState.winner == null) this.showConfetti();
             // show popup to restart Game if the player is a part of the game
-            else if (this.authenticator) this.renderTarget.add(new Popup(new Span("Game finished. Do you want to play again?"), new PrimaryButton("New game", game), new Button("Home", home)));
+            if (this.authenticator) this.renderTarget.add(new Popup(new Span("Game finished. Do you want to play again?"), new PrimaryButton("New game", game), new Button("Home", home)));
         }
         else if(this.authenticator) infoSpan.update(this.isMyTurn() ? "your turn" : "opponents turn")
         else(this.gameStateContainer.findChildren(Span, true)[0] as Span).update("observer");
