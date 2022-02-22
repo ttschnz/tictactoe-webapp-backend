@@ -118,15 +118,23 @@ export class TicTacToeGame {
      * generates elements that should be show inside this.infotarget
      */
     generateInfo() {
-        this.gameNumberContainer = new Link({
+        if(this.app.isSecureContext()) this.gameNumberContainer = new Link({
             action: (() => {
                 navigator.clipboard.writeText(this.gameUrl);
             }).bind(this)
         }, new FlexContainer(
             new MaterialIcon("tag"),
             new Span(this.gameId),
-            this.app.isSecureContext() ? new MaterialIcon("content_copy").addClass("showOnHover") : undefined
-        ).addClass("centered", "gameNumberContainer")).addClass("noTextDecoration");
+             new MaterialIcon("content_copy").addClass("showOnHover")
+        )).addClass("noTextDecoration");
+        else this.gameNumberContainer = new Container(
+            new FlexContainer(
+                new MaterialIcon("tag"),
+                new Span(this.gameId)
+            )
+        );
+        this.gameNumberContainer.addClass("centered", "gameNumberContainer");
+
         this.gameStateContainer = new Container(new Span("connected."));
         this.gameStateContainer.addClass("gameStateContainer");
     }
