@@ -24,7 +24,7 @@ import {
     TicTacToeGameContainer,
     UserInfo,
     GameBrowser,
-    PostGameInfo
+    Authenticator
 } from "./game.js";
 import { Credentials } from "./webapp.js";
 
@@ -247,13 +247,16 @@ game.renderFunction = async (addElement, app) => {
 }
 
 gameInfo.renderFunction = async (addElement, app) => {
-    let gameContainer = new TicTacToeGameContainer().addClass("readonly") as TicTacToeGameContainer;
+    let gameContainer = new TicTacToeGameContainer() as TicTacToeGameContainer;
+    if(!app.credentials)gameContainer.addClass("readonly");
     let gameInfoContainer = new Container();
     let gamePlayerInfo = GamePlayerInfo.procrastinate();
 
     let gameId = app.getState().regExResult[1];
     app.log(`gameId: ${gameId}`);
-    let game = new TicTacToeGame(gameId, app, gameContainer, gameInfoContainer, gamePlayerInfo);
+    let game
+    if(app.credentials) game = new TicTacToeGame(gameId, app, gameContainer, gameInfoContainer, gamePlayerInfo, Authenticator.fromUsername(app.credentials));
+    else game = new TicTacToeGame(gameId, app, gameContainer, gameInfoContainer, gamePlayerInfo);
     gamePlayerInfo.resolve(game)
 
     addElement(new Header());
