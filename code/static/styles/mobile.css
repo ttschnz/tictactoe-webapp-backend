@@ -17,10 +17,16 @@
     main {
         padding: 0px;
         background:white;
+        padding-bottom: 100px;
     }
     
     .gameContainer {
         min-width: min(360px, 80vw);
         min-height: min(360px, 80vw);
+    }
+
+    .userInfo{
+        border-radius: 0;
+        box-shadow: none;
     }
   }

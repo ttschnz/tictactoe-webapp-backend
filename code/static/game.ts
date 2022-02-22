@@ -102,7 +102,7 @@ export class TicTacToeGame {
     }
 
     get gameUrl(): string {
-        return `${document.location.href}/${this.gameId}`;
+        return `${document.location.origin}/game/${this.gameId}`;
     }
 
     set gameMetaData(value:GameMetaData){
@@ -125,7 +125,7 @@ export class TicTacToeGame {
         }, new FlexContainer(
             new MaterialIcon("tag"),
             new Span(this.gameId),
-            new MaterialIcon("content_copy").addClass("showOnHover")
+            this.app.isSecureContext() ? new MaterialIcon("content_copy").addClass("showOnHover") : undefined
         ).addClass("centered", "gameNumberContainer")).addClass("noTextDecoration");
         this.gameStateContainer = new Container(new Span("connected."));
         this.gameStateContainer.addClass("gameStateContainer");
@@ -144,11 +144,11 @@ export class TicTacToeGame {
         // update the gameState to "your turn" or "opponents turn" depending on who did the last move. "finished: @username" if the game is done, "finished: Guest" if it is a guest
         if(this.gameMetaData && this.gameMetaData.gameState.finished) {
             // show who won
-            infoSpan.update(`finished: ${this.gameMetaData.gameState.isEven ? "nobody" : this.gameMetaData.gameState.winner == null ? "Guest" : `@${this.gameMetaData.gameState.winner}`} won`);
-            // show confetti if you are an observer and there is a winner
-            if(!this.authenticator && !this.gameMetaData.gameState.isEven) this.showConfetti();
+            infoSpan.update("finished: ",  
+                this.gameMetaData.gameState.isEven ? "nobody" : this.gameMetaData.gameState.winner == null ? "Guest" : new UserSpan(this.gameMetaData.gameState.winner), 
+                " won");
             // show confetti if you are the winner and signed in
-            else if (this.app.credentials && this.gameMetaData.gameState.winner == this.app.credentials.username) this.showConfetti();
+            if (this.app.credentials && this.gameMetaData.gameState.winner == this.app.credentials.username) this.showConfetti();
             // show confetti if you are a guest and the winner is a guest (requires a rule that guests can't play against each other)
             else if (!this.gameMetaData.gameState.isEven && !this.app.credentials && this.gameMetaData.gameState.winner == null) this.showConfetti();
             // show popup to restart Game if the player is a part of the game
@@ -405,6 +405,7 @@ export class TicTacToeMiniature extends Container{
         this.userMap = {"1":"x","-1":"o", "0":false}
         this.addClass("readonly")
         this.addClass("gameContainer");
+        this.addClass("miniature");
         for (let y of [0, 1, 2]) {
             for (let x of [0, 1, 2]) {
                 let tile = new TicTacToeGameTile(x, y);
@@ -504,7 +505,7 @@ export class PlayerInfo extends FlexContainer {
         this.isBot = playerName == "bot";
         this.add(new MaterialIcon(this.map[String(role)]).addClass("playerSign"));
         this.add(new MaterialIcon(this.isBot ? "precision_manufacturing" : "person").addClass("playerIcon"));
-        this.add(new Span(playerName ? `@${playerName}` : "Guest").addClass("playerName"));
+        this.add(new UserSpan(playerName).addClass("playerName"));
         this.addClass("playerInfo");
     }
     update(nextPlayer){
@@ -549,15 +550,15 @@ export class GamePlayerInfo extends FlexContainerRow {
     }
 }
 
-export class UserInfo extends Tile{
+export class UserInfo extends BasicElement{
     totalCount:Span = new Span().addClass("totalCount") as Span;
     winCount:Span = new Span().addClass("winCount") as Span;
     streakCount:Span = new Span().addClass("streakCount") as Span;
     
     constructor(private _username: string, lazy=false){
-        super();
-
-        this.add(new Heading(1, `@${this.username}`));
+        super("div");
+        this.addClass("userInfo");
+        this.add(new Heading(1, new UserSpan(this.username)));
         this.add(new FlexContainerRow(
             new Container(
                 new Span("Games Played"),
@@ -599,9 +600,10 @@ export class UserInfo extends Tile{
     }
 }
 
-export class GameBrowser extends Tile{
+export class GameBrowser extends FlexContainerRow{
     constructor(private _username: string, lazy=false){
         super();
+        this.addClass("justifyCenter", "gameBrowser");
         if(!lazy) this.loadData().then(data=>this.displayData(data));
     }
     public get username(): string {
@@ -625,19 +627,30 @@ export class GameBrowser extends Tile{
         this.clear();
         for(let game of data){
             this.add(
-                new FlexContainerColumn(
-                    new Heading(2, `#${game.gameId.toString(16)}`),
-                    new ClickableElmnt(new TicTacToeMiniature(game), `/game/${game.gameId.toString(16)}`),
-                    new Container(
-                        new Span("Attacker"),
-                        new Span(`@${game.attacker}`)
-                    ).addClass("attackerName"),
-                    new Container(
-                        new Span("Defender"),
-                        new Span(`@${game.defender}`)
-                    ).addClass("defenderName")
+                new Tile(
+                    new FlexContainerColumn(
+                        new Heading(2, `#${game.gameId.toString(16)}`),
+                        new ClickableElmnt(new TicTacToeMiniature(game), `/game/${game.gameId.toString(16)}`),
+                        new Container(
+                            new Span("Attacker"),
+                            new UserSpan(game.attacker)
+                        ).addClass("attackerName"),
+                        new Container(
+                            new Span("Defender"),
+                            new UserSpan(game.defender)
+                        ).addClass("defenderName")
+                    )
                 )
             );
         }
+    }
+}
+
+export class UserSpan extends ClickableElmnt{
+    constructor(public username: string){
+        super(new Span(username ? `@${username}`: "Guest"), username ? `/user/@${username}` : false);
+        this.app.log(`userspan for`,username);
+        this.addClass("userSpan");
+        if(username) this.addClass("underlined");
     }
 }

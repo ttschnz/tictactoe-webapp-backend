@@ -64,7 +64,13 @@ export default class WebApp {
         this.log(`found ${Object.values(matchingStates??{}).length} matching states:`, matchingStates)
         this.setState((matchingStates ?? [])[0] ?? errorState, url);
     }
-
+   /**
+     * Figures out whether or not the site is loaded in a secure contet (https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts) to prevent things from not working
+     * @returns whether or not to use features that are available in a secure context
+     */
+    isSecureContext():boolean{
+        return window.isSecureContext;
+    }
     api(target: string, data = {}, sendToken = false): Promise < JSONResponse > {
         return new Promise((resolve, _reject) => {
             fetch(target, {

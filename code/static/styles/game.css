@@ -53,6 +53,9 @@
     gap: 1%;
     margin-bottom: 20px;
 }
+.miniature.gameContainer {
+    --size: 20;
+}
 
 .gameThumbnail {
     --size: 20;
@@ -138,4 +141,50 @@
     transform: translate(-50%, 120%);
     font-size: 1.3em;
     color:black
+}
+.userSpan{
+    display: inline;
+    font: inherit;
+}
+.userInfo {
+    padding: 20px;
+    background: hsl(calc(var(--accentHue) + 0deg) 20% 50%);
+    box-shadow: 2px 2px 6px 0px var(--color700);
+    width: 100%;
+    color: white;
+    border-radius: 5px;
+}
+
+.gameBrowser{
+    height: 100%;
+}
+.gameBrowser:empty {
+    width: 100%;
+    position: relative;
+}
+
+.gameBrowser:empty::before{
+    content:"";
+    border: 3px solid hsl(calc(var(--accentHue) + 0deg) 20% 30%);
+    border-bottom-color: transparent;
+    height: 30px;
+    width: 30px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    animation-name: centeredRotate;
+    animation-duration: 0.8s;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+}
+
+@keyframes centeredRotate{
+    0%{
+        transform: translate(-50%, -50%) rotate(0deg);
+    }
+    100%{
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
 }

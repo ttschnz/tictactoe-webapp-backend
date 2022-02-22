@@ -44,3 +44,7 @@ a:hover .showOnHover{
     font-family: "Material Icons";
     content: "query_builder";
 }
+
+.underlined{
+    text-decoration: underline;
+}

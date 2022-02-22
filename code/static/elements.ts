@@ -73,7 +73,7 @@ export class BasicElement {
 }
 
 export class ClickableElmnt extends BasicElement {
-    constructor(public label: string | HTMLElement | BasicElement, public action: State | Function | string, tagName: string = "div") {
+    constructor(public label: string | HTMLElement | BasicElement, public action: State | Function | string |false, tagName: string = "div") {
         super(tagName);
         this.addClass("clickable");
         this.element.addEventListener("click", this.click.bind(this))
@@ -86,9 +86,11 @@ export class ClickableElmnt extends BasicElement {
      * sets the state to the target state given to the constructor
      */
     click(_event: Event) {
-        if (this.action instanceof State) this.app.setState(this.action);
-        else if (typeof(this.action) == "string") this.app.loadStateByURL(this.action);
-        else this.action();
+        if(this.action != false){
+            if (this.action instanceof State) this.app.setState(this.action);
+            else if (typeof(this.action) == "string") this.app.loadStateByURL(this.action);
+            else this.action();
+        }
     }
 }
 // HTML Button Element
@@ -236,9 +238,10 @@ export class SmallTile extends Tile{
     }
 }
 export class Heading extends BasicElement {
-    constructor(headingLevel: 1 | 2 | 3 | 4 | 5 | 6, content: string) {
+    constructor(headingLevel: 1 | 2 | 3 | 4 | 5 | 6, content: string|BasicElement) {
         super(`h${headingLevel}`);
-        this.add(document.createTextNode(content));
+        if(content instanceof BasicElement) this.add(content);
+        else this.add(document.createTextNode(content));
     }
 }
 export class FlexContainer extends Container {
@@ -350,9 +353,12 @@ export class Span extends BasicElement {
         super("span");
         if(content) this.add(document.createTextNode(content));
     }
-    update(content: string) {
+    update(...content: Array<string|BasicElement>) {
         this.clear();
-        this.add(document.createTextNode(content));
+        for(let item of content){
+            if(typeof(item) == "string") this.add(document.createTextNode(item));
+            else this.add(item);
+        }
     }
 }
 export class TinySpan extends Span{
