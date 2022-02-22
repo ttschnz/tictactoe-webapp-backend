@@ -10,7 +10,7 @@
     background: var(--color500);
 }
 
-.gameContainer:not(.readonly):not(.gameFinished) .gameTile:is([data-occupied-by="false"]):not(.disabled){
+.gameContainer:not(.readonly):not(.gameFinished) .gameTile:is([data-occupied-by="false"]):not(.disabled) {
     cursor: pointer;
 }
 
@@ -42,17 +42,19 @@
     grid-template-columns: repeat(3, 1fr);
     height: min(calc(var(--size) * 1vw), calc(var(--size) * var(--vh)));
     width: min(calc(var(--size) * 1vw), calc(var(--size) * var(--vh)));
-    min-width: min(360px,calc(80vw - 40px));
+    min-width: min(360px, calc(80vw - 40px));
     padding: 20px;
-    min-height: min(360px,calc(80vw - 40px));
+    min-height: min(360px, calc(80vw - 40px));
     align-self: center;
     justify-self: center;
 }
-.gameContainer{
+
+.gameContainer {
     --size: 60;
     gap: 1%;
     margin-bottom: 20px;
 }
+
 .miniature.gameContainer {
     --size: 20;
 }
@@ -92,15 +94,17 @@
     font-size: 1.3em;
 }
 
-.gamePlayerInfo, .playerInfo {
+.gamePlayerInfo,
+.playerInfo {
     justify-content: space-around;
 }
 
-.gamePlayerInfo > :first-child {
-    direction:ltr
+.gamePlayerInfo> :first-child {
+    direction: ltr
 }
-.gamePlayerInfo >:last-child {
-    direction:rtl
+
+.gamePlayerInfo>:last-child {
+    direction: rtl
 }
 
 .playerInfo {
@@ -117,21 +121,26 @@
     font-size: 2.6em;
     text-align: center;
 }
+
 .gamePlayerInfo .vs {
     font-size: 1.7em;
 }
 
-.playerInfo.myTurn, .playerInfo.winningPlayer {
+.playerInfo.myTurn,
+.playerInfo.winningPlayer {
     box-shadow: 5px 5px 8px 0px hsl(var(--accentHue) 40% 40% / 0.5);
     background: hsl(var(--accentHue) 23% 50%);
     color: white;
 }
-.playerInfo{
+
+.playerInfo {
     transition: box-shadow 0.3s, background 0.3s;
 }
-.playerName{
+
+.playerName {
     direction: ltr;
 }
+
 .winningPlayer::after {
     content: "emoji_events";
     font-family: "Material Icons";
@@ -140,12 +149,14 @@
     left: 50%;
     transform: translate(-50%, 120%);
     font-size: 1.3em;
-    color:black
+    color: black
 }
-.userSpan{
+
+.userSpan {
     display: inline;
     font: inherit;
 }
+
 .userInfo {
     padding: 20px;
     background: hsl(calc(var(--accentHue) + 0deg) 20% 50%);
@@ -154,17 +165,73 @@
     color: white;
     border-radius: 5px;
 }
+.userStatsContainer{
+    gap:0;
+}
+.userStatsContainer h2{
+    font-size: .8em;
+    margin: 0;
+    font-weight: normal;
+}
+.userStats{
+    font-size: 2em;
+    font-weight: bold;
+}
+.userStatsOverview{
+    justify-content: space-evenly;
+}
+.userStats:empty {
+    width: 2ch;
+    height: 1.5em;
+    display: inline-block;
+    background: #fff6;
+    border-radius: 3px;
+    background: linear-gradient(90deg, transparent, #00000008, transparent);
+    animation-name: loadingBackground;
+    animation-iteration-count: infinite;
+    animation-duration: 1.3s;
+    animation-timing-function: ease-in-out;
+    animation-direction: alternate;
+}
 
-.gameBrowser{
+.attackerName,
+.defenderName {
+    align-items: center;
+    justify-content: space-between;
+    padding-left: 2.2em;
+    position: relative;
+}
+
+.attackerName h3,
+.defenderName h3{
+    margin:0;
+}
+
+.defenderName::before, 
+.attackerName::before{
+    font-family: "Material Icons";
+    font-size: 1.8em;
+    position: absolute;
+    left: 0;
+}
+
+.defenderName::before{
+    content: "radio_button_unchecked";
+}
+.attackerName::before {
+    content: "close";
+}
+.gameBrowser {
     height: 100%;
 }
+
 .gameBrowser:empty {
     width: 100%;
     position: relative;
 }
 
-.gameBrowser:empty::before{
-    content:"";
+.gameBrowser:empty::before {
+    content: "";
     border: 3px solid hsl(calc(var(--accentHue) + 0deg) 20% 30%);
     border-bottom-color: transparent;
     height: 30px;
@@ -180,11 +247,12 @@
     animation-timing-function: linear;
 }
 
-@keyframes centeredRotate{
-    0%{
+@keyframes centeredRotate {
+    0% {
         transform: translate(-50%, -50%) rotate(0deg);
     }
-    100%{
+
+    100% {
         transform: translate(-50%, -50%) rotate(360deg);
     }
 }

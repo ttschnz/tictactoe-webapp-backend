@@ -30,7 +30,7 @@ export interface PostGameInfo{
     gameField: Array<-1|0|1>
     gameId: number
     isEven: boolean
-    state: 1|0
+    isFinished: boolean
     winner: string|null|false
 }
 
@@ -560,28 +560,38 @@ export class GamePlayerInfo extends FlexContainerRow {
 }
 
 export class UserInfo extends BasicElement{
-    totalCount:Span = new Span().addClass("totalCount") as Span;
-    winCount:Span = new Span().addClass("winCount") as Span;
-    streakCount:Span = new Span().addClass("streakCount") as Span;
+    totalCount:Span = new Span().addClass("totalCount", "userStats") as Span;
+    winCount:Span = new Span().addClass("winCount", "userStats") as Span;
+    streakCount:Span = new Span().addClass("streakCount", "userStats") as Span;
+    looseCount:Span = new Span().addClass("looseCount", "userStats") as Span;
+    ongoingCount:Span = new Span().addClass("ongoingCount", "userStats") as Span;
     
     constructor(private _username: string, lazy=false){
         super("div");
         this.addClass("userInfo");
         this.add(new Heading(1, new UserSpan(this.username)));
         this.add(new FlexContainerRow(
-            new Container(
-                new Span("Games Played"),
+            new FlexContainerColumn(
+                new Heading(2,"Games Played"),
                 this.totalCount
-            ),
-            new Container(
-                new Span("Games won"),
+            ).addClass("userStatsContainer","centered"),
+            new FlexContainerColumn(
+                new Heading(2,"Games won"),
                 this.winCount
-            ),
-            new Container(
-                new Span("Streak"),
+            ).addClass("userStatsContainer","centered"),
+            new FlexContainerColumn(
+                new Heading(2,"Streak"),
                 this.streakCount
-            ),
-        ));
+            ).addClass("userStatsContainer","centered"),
+            new FlexContainerColumn(
+                new Heading(2,"Games lost"),
+                this.looseCount
+            ).addClass("userStatsContainer","centered"),
+            new FlexContainerColumn(
+                new Heading(2,"Ongoing games"),
+                this.ongoingCount
+            ).addClass("userStatsContainer","centered")
+        ).addClass("userStatsOverview"));
         if(!lazy) this.loadData().then(data=>this.displayData(data));
     }
     public get username(): string {
@@ -602,14 +612,21 @@ export class UserInfo extends BasicElement{
 
     async displayData(data:PostGameInfo[]){
         if(!data) data = await this.loadData();
-        this.totalCount.update(String(data.length));
+        this.totalCount.update(String(data.filter(gameInfo=>gameInfo.isFinished).length));
         this.winCount.update(String(data.filter(gameInfo=>gameInfo.winner == this.username).length));
         this.streakCount.update(String(data.map(gameInfo=>gameInfo.winner == this.username ? 1 : 0).join("").split("0").pop().length));
+        this.looseCount.update(String(data.filter(gameInfo=>gameInfo.isFinished && !gameInfo.isEven && gameInfo.winner != this.username ? 1 : 0).length));
+        this.ongoingCount.update(String(data.filter(gameInfo=>!gameInfo.isFinished? 1 : 0).length));
         
     }
 }
 
 export class GameBrowser extends FlexContainerRow{
+    /**
+     * 
+     * @param _username username of the user to be shown
+     * @param lazy whether or not the data should be waited for or fetched itself
+     */
     constructor(private _username: string, lazy=false){
         super();
         this.addClass("justifyCenter", "gameBrowser");
@@ -638,14 +655,21 @@ export class GameBrowser extends FlexContainerRow{
             this.add(
                 new Tile(
                     new FlexContainerColumn(
-                        new Heading(2, `#${game.gameId.toString(16)}`),
-                        new ClickableElmnt(new TicTacToeMiniature(game), `/game/${game.gameId.toString(16)}`),
-                        new Container(
-                            new Span("Attacker"),
+                        new ClickableElmnt(
+                            new FlexContainerColumn(
+                                new FlexContainerRow(
+                                    new Heading(2,`#${game.gameId.toString(16)}`),
+                                    new Span(`- ${game.isFinished && !game.isEven ? game.winner == this.username ? "won" : "defeated" : game.isEven ? "even" : "ongoing"}`)
+                                ).addClass("alignCenter"),
+                                new TicTacToeMiniature(game)
+                            ), 
+                            `/game/${game.gameId.toString(16)}`),
+                        new FlexContainerRow(
+                            new Heading(3,"Attacker"),
                             new UserSpan(game.attacker)
                         ).addClass("attackerName"),
-                        new Container(
-                            new Span("Defender"),
+                        new FlexContainerRow(
+                            new Heading(3,"Defender"),
                             new UserSpan(game.defender)
                         ).addClass("defenderName")
                     )

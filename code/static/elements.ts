@@ -180,6 +180,7 @@ export class ReferralBadge extends Link {
         super({
             href: tgt
         }, badgeImg);
+        this.addClass("referralBadgeContainer");
     }
 }
 

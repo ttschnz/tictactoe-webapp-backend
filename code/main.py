@@ -155,7 +155,7 @@ class Game(db.Model, SerializerMixin):
         info["gameId"] = self.gameId
         info["winner"] = self.winner
         info["gameField"] = self.getGameField()
-        info["state"] = self.getGameState()
+        info["isFinished"] = self.gameFinished
         info["isEven"] = self.isEven
         return info
 

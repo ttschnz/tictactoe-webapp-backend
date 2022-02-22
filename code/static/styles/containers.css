@@ -47,6 +47,17 @@ footer {
     bottom: 0;
 }
 
+.referralBadgeContainer,
+.versionHash{
+    position: absolute;
+    bottom:0;
+}
+.versionHash{
+    left:0;
+}
+.referralBadgeContainer{
+    right:0;
+}
 
 .clickable{
     cursor: pointer;
@@ -76,6 +87,9 @@ footer {
 }
 .justifyCenter{
     justify-content: center;
+}
+.alignCenter{
+    align-items: center;
 }
 .popup {
     position: absolute;
