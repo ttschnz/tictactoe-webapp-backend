@@ -237,25 +237,6 @@ export class Header extends BasicElement {
         else if (showLogin) this.add(new Button("Log in", login));
     }
 }
-export class Tile extends Container {
-    constructor(...children: BasicElement[]) {
-        super(children);
-        this.addClass("tile");
-    }
-}
-export class SmallTile extends Tile{
-    constructor(...children: BasicElement[]){
-        super(...children);
-        this.addClass("small");
-    }
-}
-export class Heading extends BasicElement {
-    constructor(headingLevel: 1 | 2 | 3 | 4 | 5 | 6, content: string|BasicElement) {
-        super(`h${headingLevel}`);
-        if(content instanceof BasicElement) this.add(content);
-        else this.add(document.createTextNode(content));
-    }
-}
 export class FlexContainer extends Container {
     constructor(...children: BasicElement[]) {
         super(children);
@@ -272,6 +253,25 @@ export class FlexContainerRow extends FlexContainer {
     constructor(...children: BasicElement[]) {
         super(...children);
         this.addClass("row");
+    }
+}
+export class Tile extends FlexContainerColumn {
+    constructor(...children: BasicElement[]) {
+        super(...children);
+        this.addClass("tile");
+    }
+}
+export class SmallTile extends Tile{
+    constructor(...children: BasicElement[]){
+        super(...children);
+        this.addClass("small");
+    }
+}
+export class Heading extends BasicElement {
+    constructor(headingLevel: 1 | 2 | 3 | 4 | 5 | 6, content: string|BasicElement) {
+        super(`h${headingLevel}`);
+        if(content instanceof BasicElement) this.add(content);
+        else this.add(document.createTextNode(content));
     }
 }
 
