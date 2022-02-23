@@ -9,9 +9,7 @@ import {
     home,
     login
 } from "./states.js";
-import {
-    TicTacToeGame
-} from "./game.js";
+
 // basic element on which all other elements should be extended 
 export class BasicElement {
     element: HTMLElement;
@@ -112,6 +110,14 @@ export class PrimaryButton extends Button {
     }
 }
 
+export class UserSpan extends ClickableElmnt{
+    constructor(public username: string){
+        super(new Span(username ? `@${username}`: "Guest"), username ? `/user/@${username}` : false);
+        this.app.log(`userspan for`,username);
+        this.addClass("userSpan");
+        if(username) this.addClass("underlined");
+    }
+}
 // logo
 export class TicTacToeLogo extends ClickableElmnt {
     constructor() {
@@ -225,8 +231,9 @@ export class Footer extends BasicElement {
 export class Header extends BasicElement {
     constructor(showLogin: boolean = true, showLogo: boolean = true) {
         super("header");
+        app.log(app);
         if (showLogo) this.add(new TicTacToeLogo());
-        if (localStorage.getItem("username")) this.add(new FlexContainer(new Span(`@${localStorage.getItem("username")}`), new Button("Sign out", app.signOut)).addClass("centered"));
+        if (app.credentials) this.add(new FlexContainer(new UserSpan(app.credentials.username), new Button("Sign out", app.signOut)).addClass("centered"));
         else if (showLogin) this.add(new Button("Log in", login));
     }
 }
@@ -278,7 +285,7 @@ export class HorizontalLine extends BasicElement {
 
 export class Input extends BasicElement {
     input: HTMLInputElement;
-    constructor(name: string, label: string, type: string = "text", value ? : string | undefined, autocomplete ? : string | undefined) {
+    constructor(public name: string, public label: string, public type: string = "text", public required ?:boolean, value ? : string | undefined, public autocomplete ? : string | undefined, public validator ?: RegExp, public validatorErrorMessage?:string) {
         super("div");
         this.addClass("labeled", "input");
 
@@ -286,8 +293,9 @@ export class Input extends BasicElement {
         this.input.name = name;
         this.input.type = type;
         this.input.placeholder = label;
-        if (value != undefined) this.input.setAttribute("value", value);
+        if (value != undefined) this.value = value;
         if (autocomplete != undefined) this.input.setAttribute("autocomplete", autocomplete);
+        if (required) this.input.setAttribute("required","");
         this.add(this.input);
 
         let labelElement = document.createElement("label");
@@ -295,6 +303,10 @@ export class Input extends BasicElement {
         labelElement.appendChild(document.createTextNode(label));
         this.add(labelElement);
 
+        if(this.validator) this.input.addEventListener("change", (_e)=>{
+            if(!this.validator.test(this.value)) this.input.setCustomValidity( this.validatorErrorMessage ?? "please enter a valid value.");
+            else this.input.setCustomValidity("");
+        });
     }
     get value() {
         return this.input.value;
@@ -372,15 +384,15 @@ export class TinySpan extends Span{
         this.addClass("tinySpan");
     }
 }
-export class Popup extends FlexContainer{
+export class Popup extends FlexContainerRow{
     constructor(...children:BasicElement[]){
         super();
         this.add(new SmallTile(
             new FlexContainerColumn(
                 new MaterialIconButton("clear", this.close.bind(this)).addClass("closeButton"), 
                 ...children)
-            )
-        );
+            ).addClass("fixedWidth")
+        )
         this.addClass("hidden", "popup", "centered");
         // close on click if the primary target of the click was the Popup (and not its content)
         this.element.addEventListener("click", (evt:PointerEvent)=>{if(evt.target==this.element)this.close()});
@@ -408,11 +420,27 @@ export class Popup extends FlexContainer{
     }
 }
 
-export class HomeLink extends Link{
+export class HomeLink extends FlexContainerRow{
     constructor(){
-        super({action: ()=>{
-            app.setState(home);
-        }}, new Span("<- home"))
+        super(
+            new MaterialIconButton("home", home),
+            ...document.location.pathname.split("/")
+                .filter(value=>value!="")
+                .map((value, index, arr)=>new FlexContainerRow(
+                    new Span("/"),
+                    new ClickableElmnt(new Span(value), ()=>{
+                        app.loadStateByURL("/"+arr.filter((_v, index2)=>index>=index2).join("/"))
+                    })
+                ))
+        );
+
         this.addClass("homeLink");
+    }
+}
+
+export class InfoTile extends Container{
+    constructor(...children: BasicElement[]) {
+        super(new MaterialIcon("info").addClass("infoIcon"), new Container(...children));
+        this.addClass("infoTile")
     }
 }

@@ -7,6 +7,7 @@ import {
     user,
     viewStats,
     browseUsers,
+    viewCompetition,
     joinCompetition,
     login,
     signup,
@@ -24,6 +25,7 @@ app.addState(browseGames);
 app.addState(user);
 app.addState(viewStats);
 app.addState(browseUsers);
+app.addState(viewCompetition);
 app.addState(joinCompetition);
 app.addState(login);
 app.addState(signup);

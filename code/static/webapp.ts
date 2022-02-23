@@ -18,7 +18,8 @@ export type JSONResponse = {
 export type Credentials = {
     username: string,
     token: string,
-    tokenExpiration: number
+    tokenExpiration: number,
+    inCompetition: boolean
 }
 
 export default class WebApp {
@@ -161,7 +162,8 @@ export default class WebApp {
         let cred: Credentials = {
             username: localStorage.getItem("username"),
             token: localStorage.getItem("token"),
-            tokenExpiration: Number(localStorage.getItem("tokenExpiration"))
+            tokenExpiration: Number(localStorage.getItem("tokenExpiration")),
+            inCompetition: JSON.parse(localStorage.getItem("inCompetition")) as boolean
         };
         // if the username, the token, and an expiration date is set, and the token is still valid, return the crendentials. if not, return false
         if(cred.username && cred.token && cred.tokenExpiration && cred.tokenExpiration <= new Date().getTime()) return cred;
@@ -173,12 +175,14 @@ export default class WebApp {
             localStorage.removeItem("token");
             localStorage.removeItem("tokenExpiration");
             localStorage.removeItem("username");
+            localStorage.removeItem("inCompetition");
             app.setState(home);
             app.showError("You were signed out.");
         }else{    
             localStorage.setItem("token", value.token);
             localStorage.setItem("tokenExpiration", String(value.tokenExpiration));
             localStorage.setItem("username", value.username);
+            localStorage.setItem("inCompetition", JSON.stringify(value.inCompetition));
             this.checkCredentials()
         }
     }

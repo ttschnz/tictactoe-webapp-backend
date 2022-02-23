@@ -1,6 +1,12 @@
 import WebApp from "./webapp.js";
 import {
     BasicElement,
+    Footer,
+    Header,
+    Heading,
+    Main,
+    Span,
+    Tile,
     Warning
 } from "./elements.js";
 // type for State.stateId
@@ -83,7 +89,14 @@ export default class State {
      * @param log function for logging
      */
     renderFunction(add: Function, app: WebApp) {
-        this.log(`empty renderFunction called`, this);
+        add(new Header());
+        add(new Main(
+            new Tile(
+                new Heading(1, "Empty page"),
+                new Span("please define a renderFunction")
+            )
+        ).addHomeLink());
+        add(new Footer(app));
     }
     /**
      * Function to show an error to the user

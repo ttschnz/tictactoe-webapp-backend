@@ -314,11 +314,59 @@ class Session(db.Model, SerializerMixin):
         response["data"] = {}
         response["data"]["token"] = self.sessionKey
         response["data"]["token_expires"] = self.getExpiration()
+        response["data"]["inCompetition"] = Competition.hasJoined(self.username)
         return response
 
     def getExpiration(self):
         db.session.refresh(self)
         return int(os.environ["SESSION_TIMEOUT"]) + int(self.sessionStart.timestamp())
+
+
+class Competition(db.Model, SerializerMixin):
+    __tablename__ = "competition"
+    username = db.Column(db.String(16), db.ForeignKey("users.username"), nullable=False, primary_key=True)
+    firstName = db.Column(db.String(32), nullable=False, name="firstname")
+    lastName = db.Column(db.String(32), nullable=False, name="lastname")
+    age = db.Column(db.Integer(), nullable=False)
+    gender = db.Column(db.String(1), nullable=False)
+    timestamp = db.Column(db.DateTime(), nullable=False, name="joinedon", server_default=db.text('CURRENT_TIMESTAMP'))
+
+    def __init__(self, user, firstName, lastName, age, gender):
+        self.username = user.username
+        self.firstName = firstName
+        self.lastName = lastName
+        self.age = int(age)
+        self.gender = gender
+        self.checkValidity()
+
+    def checkValidity(self):
+        valid = True
+        valid = valid and len(self.firstName)>0
+        valid = valid and len(self.lastName)>0
+        valid = valid and self.age >= 0
+        valid = valid and self.age < 100
+        valid = valid and self.gender in ["m", "f", "?"]
+        if not valid:
+            raise ValueError("invalid inputs for competition")
+        return valid
+    
+    @staticmethod
+    def generateFromRequest(request):
+        user = User.find(Session.authenticateRequest(request)).one()
+        competition = Competition(user, request.form["firstName"], request.form["lastName"], request.form["age"], request.form["gender"])
+        db.session.add(competition)
+        db.session.flush()
+        db.session.refresh(competition)
+        db.session.commit()
+        return competition
+    
+    @staticmethod
+    def hasJoined(username):
+        # try:
+        return db.session.query(Competition).filter(Competition.username == username).count() > 0
+        # except Exception as e:
+            # app.logger.error(e)
+
 
 @app.route('/manifest.json')
 @app.route('/manifest.manifest')
@@ -350,8 +398,7 @@ def getsalt():
 def loginSubmission():
     try:
         # check if users credentials match and generate a token
-        # response = Session.generateToken(user.username).toResponse()
-        response = Session.generateToken(request.form["username"]).toResponse() if User.authorizeRequest(request) else {"success":False, "disallowed":True}
+        response = Session.generateToken(request.form["username"]).toResponse() if User.authorizeRequest(request) else {"success":False}
     except:
         response = {"success": False}
     return json.dumps(response)
@@ -363,6 +410,16 @@ def signupSubmission():
         user = User.generateFromRequest(request)
         # generate a token
         response = Session.generateToken(user.username).toResponse()
+    except Exception as e:
+        app.logger.error(e)
+        response = {"success": False}
+    return json.dumps(response)
+
+@app.route("/joinCompetition", methods=["POST"])
+def joinCompetition():
+    try:
+        competition = Competition.generateFromRequest(request)
+        response = {"success":True}
     except Exception as e:
         app.logger.error(e)
         response = {"success": False}

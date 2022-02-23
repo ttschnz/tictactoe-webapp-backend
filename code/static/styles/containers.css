@@ -42,6 +42,11 @@ header {
     height: var(--navHeight);
 }
 
+.homeLink .flex.row, .homeLink {
+    gap: 3px;
+    align-items: center;
+}
+
 footer {
     padding: 5px;
     align-items: flex-end;
@@ -54,10 +59,10 @@ footer {
     bottom:0;
 }
 .versionHash{
-    left:0;
+    left:5px;
 }
 .referralBadgeContainer{
-    right:0;
+    right:5px;
 }
 
 .clickable{
@@ -85,7 +90,6 @@ footer {
 .centered{
     justify-content: center;
     align-items: center;
-    text-align: center; 
 }
 .justifyCenter{
     justify-content: center;
@@ -114,3 +118,12 @@ footer {
     transform: scale(0.7);
 }
 
+
+.infoTile {
+    background: #ccf3c5;
+    border-radius: 5px;
+    padding: 9px;
+    display:grid;
+    grid-template-columns: 25px 1fr;
+    grid-gap: 5px;
+}

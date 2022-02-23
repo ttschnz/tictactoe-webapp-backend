@@ -63,6 +63,12 @@ input:placeholder-shown~label {
     align-items: center;
     justify-content: center;
     border-radius: 50%;
+    background: transparent;
+}
+
+.button.material-icons:hover {
+    background: var(--color500);
+    color: inherit;
 }
 
 .closeButton {
@@ -72,7 +78,9 @@ input:placeholder-shown~label {
     background: transparent;
     color: grey;
 }
-.closeButton:hover, .closeButton:active{
+
+.closeButton:hover,
+.closeButton:active {
     background: transparent;
-    color:black;
+    color: black;
 }
