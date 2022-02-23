@@ -16,7 +16,8 @@ import {
     PrimaryButton,
     Span,
     TinySpan,
-    InfoTile
+    InfoTile,
+    Popup
 } from "./elements.js";
 import {
     GamePlayerInfo,
@@ -41,10 +42,8 @@ export const browseGames = new State(1.3, "Browse Games", "/games");
 export const joinGame = new State(1.4, "Join Game", "/join");
 
 // id 2 -- user management
-export const user = new State(2, "User", "/user");
 export const browseUsers = new State(2.1, "Browse Users", "/users");
-export const viewStats = new State(2.2, "Stats", "/account");
-export const userInfo = new State(2.3, "User", "/user/", RegExp("^\/user\/(.*)$"));
+export const userInfo = new State(2.3, "User", "/users/", RegExp("^\/users\/(.*)$"));
 
 // id 3 -- admin stuff
 
@@ -401,11 +400,18 @@ userInfo.renderFunction = async (addElement, app) => {
     ).addHomeLink());
     addElement(new Footer(app));
 
+    const errorPopup = new Popup(new Heading(1, "User not found"), new Span(`The user "${username}" has not been found`));
+    errorPopup.close = async ()=>{
+        await errorPopup.fadeOut();
+        errorPopup.element.parentElement.removeChild(errorPopup.element);
+        app.setState(home);
+    }
+
     app.api(`/user/${username.split("@").join("")}`).then((response) => {
         if (response.success) {
             gameBrowser.displayData(response.data.games);
             info.displayData(response.data.games);
-        } else app.setState(errorState);
+        } else addElement(errorPopup);
     });
 }
 

@@ -384,12 +384,13 @@ export class TinySpan extends Span{
         this.addClass("tinySpan");
     }
 }
+
 export class Popup extends FlexContainerRow{
     constructor(...children:BasicElement[]){
         super();
         this.add(new SmallTile(
             new FlexContainerColumn(
-                new MaterialIconButton("clear", this.close.bind(this)).addClass("closeButton"), 
+                new MaterialIconButton("clear", ()=>{this.close()}).addClass("closeButton"), 
                 ...children)
             ).addClass("fixedWidth")
         )

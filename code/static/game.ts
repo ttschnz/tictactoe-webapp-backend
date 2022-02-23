@@ -607,7 +607,7 @@ export class UserInfo extends BasicElement{
     
     async loadData(): Promise<PostGameInfo[]>{
         return new Promise(async (resolve, _reject)=>{
-                let response = await this.app.api(`/user/${this.username}`);
+                let response = await this.app.api(`/users/${this.username}`);
                 if(response.success){
                     resolve(response.data.games as PostGameInfo[])
                 }else this.app.showError("Could not load user-data", {retry: this.loadData.bind(this)});
@@ -649,8 +649,8 @@ export class GameBrowser extends FlexContainerRow{
     async loadData(lastGameId?:number): Promise<PostGameInfo[]>{
         return new Promise(async (resolve, _reject)=>{
             let response:JSONResponse;
-            if(lastGameId) response = await this.app.api(`/user/${this.username}`, {gameId: lastGameId});
-            else response = await this.app.api(`/user/${this.username}`)
+            if(lastGameId) response = await this.app.api(`/users/${this.username}`, {gameId: lastGameId});
+            else response = await this.app.api(`/users/${this.username}`)
             if(response.success){
                 resolve(response.data.games as PostGameInfo[])
             }else this.app.showError("Could not load user-data", {retry: (()=>{

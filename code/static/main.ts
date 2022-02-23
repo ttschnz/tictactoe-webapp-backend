@@ -4,8 +4,6 @@ import {
     game,
     gameInfo,
     browseGames,
-    user,
-    viewStats,
     browseUsers,
     viewCompetition,
     joinCompetition,
@@ -22,8 +20,6 @@ app.addState(home);
 app.addState(game);
 app.addState(gameInfo);
 app.addState(browseGames);
-app.addState(user);
-app.addState(viewStats);
 app.addState(browseUsers);
 app.addState(viewCompetition);
 app.addState(joinCompetition);
