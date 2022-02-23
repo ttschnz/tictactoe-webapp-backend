@@ -34,8 +34,7 @@ a:hover .showOnHover{
     font-size: 0.8em;
     color: inherit;
     overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 50vw;
+    text-overflow: ellipsis
 }
 .versionHash.upToDate::before{
     font-family: "Material Icons";

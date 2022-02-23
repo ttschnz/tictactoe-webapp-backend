@@ -41,7 +41,7 @@ export const joinGame = new State(1.4, "Join Game", "/join");
 
 // id 2 -- user management
 export const user = new State(2, "User", "/user");
-export const browseUsers = new State(2.1, "Browse Users", "/games");
+export const browseUsers = new State(2.1, "Browse Users", "/users");
 export const viewStats = new State(2.2, "Stats", "/account");
 export const userInfo = new State(2.3, "User", "/user/", RegExp("^\/user\/(.*)$"));
 
