@@ -440,7 +440,7 @@ def returnGameInfo(gameId):
 @app.route("/games", methods=["POST"])
 def getGameList():
     response = {"success":True}
-    LIMIT = 200
+    LIMIT = 2
     try:
         games = []
         lastGameId = float(request.form["gameId"] if "gameId" in request.form else "inf")
@@ -455,7 +455,7 @@ def getGameList():
 @app.route("/user/<username>", methods=["POST"])
 def returnUserPage(username):
     response = {"success":True}
-    LIMIT = 200
+    LIMIT = 2
     try:
         user = User.find(username).one()
         if not user:
