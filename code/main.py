@@ -452,7 +452,7 @@ def getGameList():
         app.logger.error(e)
     return json.dumps(response)
 
-@app.route("/user/<username>", methods=["POST"])
+@app.route("/users/<username>", methods=["POST"])
 def returnUserPage(username):
     response = {"success":True}
     LIMIT = os.environ["GAMELIST_LIMIT"]

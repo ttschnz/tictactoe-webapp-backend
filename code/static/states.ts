@@ -77,8 +77,8 @@ home.renderFunction = (addElement, app) => {
                     new PrimaryButton(`New game`, game),
                     new Button(`Join game`, joinGame),
                     new Button(`View stats`, () => {
-                        if (app.credentials) app.loadStateByURL(`/user/${app.credentials.username}`);
-                        else app.loadStateByURL(`/user/@bot`);
+                        if (app.credentials) app.loadStateByURL(`/users/${app.credentials.username}`);
+                        else app.loadStateByURL(`/users/@bot`);
                     }),
                     new Button("Log out", app.signOut)
                 ),
@@ -407,7 +407,7 @@ userInfo.renderFunction = async (addElement, app) => {
         app.setState(home);
     }
 
-    app.api(`/user/${username.split("@").join("")}`).then((response) => {
+    app.api(`/users/${username.split("@").join("")}`).then((response) => {
         if (response.success) {
             gameBrowser.displayData(response.data.games);
             info.displayData(response.data.games);

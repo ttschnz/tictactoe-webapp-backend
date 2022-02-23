@@ -112,7 +112,7 @@ export class PrimaryButton extends Button {
 
 export class UserSpan extends ClickableElmnt{
     constructor(public username: string){
-        super(new Span(username ? `@${username}`: "Guest"), username ? `/user/@${username}` : false);
+        super(new Span(username ? `@${username}`: "Guest"), username ? `/users/@${username}` : false);
         this.app.log(`userspan for`,username);
         this.addClass("userSpan");
         if(username) this.addClass("underlined");
