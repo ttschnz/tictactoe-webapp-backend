@@ -421,23 +421,18 @@ browseGames.renderFunction = (addElement, app) => {
         gameBrowser.addClass("allGames")
     ).addHomeLink());
     addElement(new Footer(app));
-    gameBrowser.loadData = async(lastGameId?:number)=>{
-        let response:JSONResponse;
-        if(lastGameId) response = await app.api("/games", {gameId: lastGameId});
-        else  response = await app.api("/games");
-        if(response.success){
-            let data = response.data as PostGameInfo[]
-            return data;
-        }else app.showError("could not fetch games", {retry: gameBrowser.loadData.bind(gameBrowser, lastGameId)})
+    gameBrowser.loadData = (lastGameId?:number)=>{
+        return new Promise(async(resolve, _reject)=>{
+            let response:JSONResponse;
+            if(lastGameId) response = await app.api("/games", {gameId: lastGameId});
+            else  response = await app.api("/games");
+            if(response.success){
+                let data = response.data as PostGameInfo[]
+                resolve(data);
+            }else app.showError("could not fetch games", {retry: ()=>{
+                resolve(gameBrowser.loadData.bind(gameBrowser, lastGameId))
+            }})
+        });
     }
     gameBrowser.displayData();
-    // const fetchGames = async ()=>{
-    //     const response = await app.api("/games");
-    //     if(response.success){
-    //         let data = response.data as PostGameInfo[]
-    //         gameBrowser.displayData(data);
-    //     }else app.showError("could not fetch games", {retry: fetchGames})
-    // }
-
-    // fetchGames();
 }

@@ -653,16 +653,17 @@ export class GameBrowser extends FlexContainerRow{
             else response = await this.app.api(`/user/${this.username}`)
             if(response.success){
                 resolve(response.data.games as PostGameInfo[])
-            }else this.app.showError("Could not load user-data", {retry: this.loadData.bind(this)});
+            }else this.app.showError("Could not load user-data", {retry: (()=>{
+                resolve(this.loadData(lastGameId));
+            }).bind(this)});
         });
     }
 
     async displayData(data?:PostGameInfo[], clear:boolean=true){
         if(!data) data = await this.loadData();
+        
         this.gameData.push(...data);
         if(clear) this.clear();
-        // only show "no games" if the screen has been cleared
-        if(data.length == 0 && clear) this.add(new Span("No games").addClass("flexNewLine"));
         for(let game of data){
             this.add(
                 new Tile(
@@ -691,10 +692,10 @@ export class GameBrowser extends FlexContainerRow{
             );
         }
         // add button to load more if there are more (by default we assume there are more, the value will be changed if loadMore comes up empty handed)
-        if(this.hasMore) this.add(this.loadMoreButton);
+        if(this.hasMore && data.length > 0) this.add(this.loadMoreButton);
         // show "no more games" if there are no more games
         else{
-            this.add(new Span("No more games").addClass("flexNewLine"));
+            this.add(new Span(this.gameData.length == 0 ? "No games" :"No more games").addClass("flexNewLine"));
             // remove button to show more
             this.loadMoreButton.element.parentElement.removeChild(this.loadMoreButton.element);
         }
