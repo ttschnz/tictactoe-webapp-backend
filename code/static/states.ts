@@ -24,10 +24,11 @@ import {
     TicTacToeGameContainer,
     UserInfo,
     GameBrowser,
-    Authenticator
+    Authenticator,
+    PostGameInfo
 } from "./game.js";
 import {
-    Credentials
+    Credentials, JSONResponse
 } from "./webapp.js";
 
 // id 0 -- home
@@ -413,10 +414,30 @@ userInfo.urlGetter = (_args) => {
 }
 
 
-browseGames.renderFunction = async (addElement, app) => {
+browseGames.renderFunction = (addElement, app) => {
+    const gameBrowser = new GameBrowser(false, true);
     addElement(new Header());
     addElement(new Main(
-
+        gameBrowser.addClass("allGames")
     ).addHomeLink());
     addElement(new Footer(app));
+    gameBrowser.loadData = async(lastGameId?:number)=>{
+        let response:JSONResponse;
+        if(lastGameId) response = await app.api("/games", {gameId: lastGameId});
+        else  response = await app.api("/games");
+        if(response.success){
+            let data = response.data as PostGameInfo[]
+            return data;
+        }else app.showError("could not fetch games", {retry: gameBrowser.loadData.bind(gameBrowser, lastGameId)})
+    }
+    gameBrowser.displayData();
+    // const fetchGames = async ()=>{
+    //     const response = await app.api("/games");
+    //     if(response.success){
+    //         let data = response.data as PostGameInfo[]
+    //         gameBrowser.displayData(data);
+    //     }else app.showError("could not fetch games", {retry: fetchGames})
+    // }
+
+    // fetchGames();
 }

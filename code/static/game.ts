@@ -1,4 +1,4 @@
-import WebApp from "./webapp";
+import WebApp, { JSONResponse } from "./webapp";
 import {
     BasicElement,
     Container,
@@ -631,6 +631,9 @@ export class GameBrowser extends FlexContainerRow{
      * @param _username username of the user to be shown, false if games of all users should be shown
      * @param lazy whether or not the data should be waited for or fetched itself
      */
+    hasMore: boolean = true;
+    gameData: PostGameInfo[] = [];
+    loadMoreButton = new Button("load more", this.loadMore.bind(this)).addClass("flexNewLine");
     constructor(private _username: string|false, lazy=false){
         super();
         this.addClass("justifyCenter", "gameBrowser");
@@ -643,18 +646,23 @@ export class GameBrowser extends FlexContainerRow{
         this._username = value;
     }
 
-    async loadData(): Promise<PostGameInfo[]>{
+    async loadData(lastGameId?:number): Promise<PostGameInfo[]>{
         return new Promise(async (resolve, _reject)=>{
-                let response = await this.app.api(`/user/${this.username}`);
-                if(response.success){
-                    resolve(response.data.games as PostGameInfo[])
-                }else this.app.showError("Could not load user-data", {retry: this.loadData.bind(this)});
+            let response:JSONResponse;
+            if(lastGameId) response = await this.app.api(`/user/${this.username}`, {gameId: lastGameId});
+            else response = await this.app.api(`/user/${this.username}`)
+            if(response.success){
+                resolve(response.data.games as PostGameInfo[])
+            }else this.app.showError("Could not load user-data", {retry: this.loadData.bind(this)});
         });
     }
 
-    async displayData(data:PostGameInfo[]){
+    async displayData(data?:PostGameInfo[], clear:boolean=true){
         if(!data) data = await this.loadData();
-        this.clear();
+        this.gameData.push(...data);
+        if(clear) this.clear();
+        // only show "no games" if the screen has been cleared
+        if(data.length == 0 && clear) this.add(new Span("No games").addClass("flexNewLine"));
         for(let game of data){
             this.add(
                 new Tile(
@@ -681,6 +689,23 @@ export class GameBrowser extends FlexContainerRow{
                     )
                 )
             );
+        }
+        // add button to load more if there are more (by default we assume there are more, the value will be changed if loadMore comes up empty handed)
+        if(this.hasMore) this.add(this.loadMoreButton);
+        // show "no more games" if there are no more games
+        else{
+            this.add(new Span("No more games").addClass("flexNewLine"));
+            // remove button to show more
+            this.loadMoreButton.element.parentElement.removeChild(this.loadMoreButton.element);
+        }
+    }
+    async loadMore(){
+        if(this.gameData){
+            let data = await this.loadData(this.gameData[this.gameData.length - 1].gameId);
+            this.hasMore = data.length > 0;
+            this.displayData(data, false);
+        }else{
+            this.app.log(this, this.gameData);
         }
     }
 }

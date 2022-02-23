@@ -165,21 +165,26 @@
     color: white;
     border-radius: 5px;
 }
-.userStatsContainer{
-    gap:0;
+
+.userStatsContainer {
+    gap: 0;
 }
-.userStatsContainer h2{
+
+.userStatsContainer h2 {
     font-size: .8em;
     margin: 0;
     font-weight: normal;
 }
-.userStats{
+
+.userStats {
     font-size: 2em;
     font-weight: bold;
 }
-.userStatsOverview{
+
+.userStatsOverview {
     justify-content: space-evenly;
 }
+
 .userStats:empty {
     width: 2ch;
     height: 1.5em;
@@ -203,36 +208,43 @@
 }
 
 .attackerName h3,
-.defenderName h3{
-    margin:0;
+.defenderName h3 {
+    margin: 0;
 }
 
-.defenderName::before, 
-.attackerName::before{
+.defenderName::before,
+.attackerName::before {
     font-family: "Material Icons";
     font-size: 1.8em;
     position: absolute;
     left: 0;
 }
 
-.defenderName::before{
+.defenderName::before {
     content: "radio_button_unchecked";
 }
+
 .attackerName::before {
     content: "close";
 }
+
 .gameBrowser {
     height: 100%;
 }
 
-.gameTitleRow{
+.gameBrowser.allGames:not(:empty) {
+    height: unset;
+}
+
+.gameTitleRow {
     position: relative;
 }
 
-.continueGame{
+.continueGame {
     position: absolute;
     right: 0;
 }
+
 .gameBrowser:empty {
     width: 100%;
     position: relative;
@@ -253,6 +265,16 @@
     animation-duration: 0.8s;
     animation-iteration-count: infinite;
     animation-timing-function: linear;
+}
+
+.gameBrowser::after {
+    content: "";
+    flex: 0 0 100%;
+    height: 0;
+}
+
+.flexNewLine {
+    order: 1;
 }
 
 @keyframes centeredRotate {

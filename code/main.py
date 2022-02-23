@@ -85,8 +85,8 @@ class User(db.Model, SerializerMixin):
         db.session.refresh(user)
         return user
     
-    def getGames(self):
-        return db.session.query(Game).filter(Game.attacker == self.username).union(db.session.query(Game).filter(Game.defender==self.username)).order_by(db.desc(Game.gameId)).all()
+    def getGames(self, limit, lastGameId):
+        return db.session.query(Game).filter(Game.attacker == self.username).union(db.session.query(Game).filter(Game.defender==self.username)).filter(Game.gameId < lastGameId).order_by(Game.gameId.desc()).limit(limit).all()
 
 # table to store games and their players to
 class Game(db.Model, SerializerMixin):
@@ -437,15 +437,32 @@ def returnGameInfo(gameId):
         app.logger.error(e)
     return json.dumps(response)
 
+@app.route("/games", methods=["POST"])
+def getGameList():
+    response = {"success":True}
+    LIMIT = 200
+    try:
+        games = []
+        lastGameId = float(request.form["gameId"] if "gameId" in request.form else "inf")
+        for game in db.session.query(Game).filter(Game.gameId < lastGameId).order_by(Game.gameId.desc()).limit(LIMIT).all():
+            games.append(game.getGameInfo())
+        response["data"]=games
+    except Exception as e:
+        response["success"]=False
+        app.logger.error(e)
+    return json.dumps(response)
+
 @app.route("/user/<username>", methods=["POST"])
 def returnUserPage(username):
     response = {"success":True}
+    LIMIT = 200
     try:
         user = User.find(username).one()
         if not user:
             abort(404)
         games = []
-        for game in user.getGames():
+        lastGameId = float(request.form["gameId"] if "gameId" in request.form else "inf")
+        for game in user.getGames(LIMIT, lastGameId):
             games.append(game.getGameInfo())
         response["data"]={"user":user.username, "games": games}
     except Exception as e:
