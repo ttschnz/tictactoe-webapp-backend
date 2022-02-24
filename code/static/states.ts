@@ -40,7 +40,7 @@ export const home = new State(0, "Home", "/");
 export const game = new State(1, "Game", "/games/new");
 export const gameInfo = new State(1.2, "Game", "/games/", RegExp("^\/games\/(.*)$"));
 export const browseGames = new State(1.3, "Browse Games", "/games");
-export const joinGame = new State(1.4, "Join Game", "/join");
+// export const joinGame = new State(1.4, "Join Game", "/join");
 
 // id 2 -- user management
 export const browseUsers = new State(2.1, "Browse Users", "/users");
@@ -76,7 +76,7 @@ home.renderFunction = (addElement, app) => {
                 new HorizontalLine("Your Account"),
                 new FlexContainerColumn(
                     new PrimaryButton(`New game`, game),
-                    new Button(`Join game`, joinGame),
+                    // new Button(`Join game`, joinGame),
                     new Button(`View stats`, () => {
                         if (app.credentials) app.loadStateByURL(`/users/@${app.credentials.username}`);
                         else app.loadStateByURL(`/users/@bot`);
