@@ -9,14 +9,20 @@ import {
     home,
     login
 } from "./states.js";
-
+import {
+    UserBrowserTable
+} from "./game.js";
+export type SortingOptions = "ASC" | "DESC" | "NONE";
 // basic element on which all other elements should be extended 
 export class BasicElement {
     element: HTMLElement;
     children: BasicElement[] = [];
-    constructor(tagName) {
-        this.element = document.createElement(tagName);
+    constructor(altTagName ? : string) {
+        this.element = document.createElement(altTagName ?? this.tagName);
         this.element["instance"] = this;
+    }
+    get tagName(): string {
+        return "div";
     }
     get app(): WebApp {
         return app
@@ -28,18 +34,26 @@ export class BasicElement {
     add(...elements: Array < BasicElement | HTMLElement | Text > ): void {
         for (let element of elements) {
             if (element instanceof HTMLElement || element instanceof Text) this.element.appendChild(element);
-            else if(element) this.element.appendChild(element.element);
+            else if (element) this.element.appendChild(element.element);
             if (element instanceof BasicElement && this.children.indexOf(element) < 0) this.children.push(element);
         }
     }
     /**
-     * clears content of element
+     * clears content of element, if you like only certain class
+     * @param className class to remove
+     * @param recurse true if on all levels (also grand-children etc.), false if only direct children
      */
-    clear(): void {
-        while (this.element.childNodes.length > 0) {
-            this.element.removeChild(this.element.childNodes[0]);
+    clear(className ? : Function, recurse ? : boolean): void {
+        if (className) {
+            let children = this.findChildren(className, recurse ?? true)
+            for (let child of children) {
+                if (child.element.parentElement) child.element.parentElement.removeChild(child.element);
+            }
+        } else {
+            while (this.element.childNodes.length > 0) {
+                this.element.removeChild(this.element.childNodes[0]);
+            }
         }
-        console.log(this.element.children);
     }
 
     /**
@@ -71,8 +85,8 @@ export class BasicElement {
 }
 
 export class ClickableElmnt extends BasicElement {
-    constructor(public label: string | HTMLElement | BasicElement, public action: State | Function | string |false, tagName: string = "div") {
-        super(tagName);
+    constructor(public label: string | HTMLElement | BasicElement, public action: State | Function | string | false) {
+        super();
         this.addClass("clickable");
         this.element.addEventListener("click", this.click.bind(this))
         if (this.label instanceof HTMLElement) this.add(this.label);
@@ -84,9 +98,9 @@ export class ClickableElmnt extends BasicElement {
      * sets the state to the target state given to the constructor
      */
     click(_event: Event) {
-        if(this.action != false){
+        if (this.action != false) {
             if (this.action instanceof State) this.app.setState(this.action);
-            else if (typeof(this.action) == "string") this.app.loadStateByURL(this.action);
+            else if (typeof (this.action) == "string") this.app.loadStateByURL(this.action);
             else this.action();
         }
     }
@@ -98,8 +112,11 @@ export class Button extends ClickableElmnt {
      * @param label Label (innerText) of button
      * @param action State or function which a click event should trigger
      */
+    get tagName(): string {
+        return "button";
+    }
     constructor(public label: string | HTMLElement | BasicElement, public action: State | Function | string) {
-        super(label, action, "button");
+        super(label, action);
         this.addClass("button");
     }
 }
@@ -110,12 +127,12 @@ export class PrimaryButton extends Button {
     }
 }
 
-export class UserSpan extends ClickableElmnt{
-    constructor(public username: string){
-        super(new Span(username ? `@${username}`: "Guest"), username ? `/users/@${username}` : false);
-        this.app.log(`userspan for`,username);
+export class UserSpan extends ClickableElmnt {
+    constructor(public username: string) {
+        super(new Span(username ? `@${username}` : "Guest"), username ? `/users/@${username}` : false);
+        this.app.log(`userspan for`, username);
         this.addClass("userSpan");
-        if(username) this.addClass("underlined");
+        if (username) this.addClass("underlined");
     }
 }
 // logo
@@ -139,40 +156,39 @@ export class TicTacToeLogo extends ClickableElmnt {
 }
 
 export class Container extends BasicElement {
-    /**
-     * @param args tagName:?String="div", ...children:BasicElement[]
-     */
-    constructor(...args: Array < any > ) {
-        let tagName: string;
-        if (typeof args[0] == "string") tagName = args.shift();
-        if (tagName) super(tagName);
-        else super("div");
-        if (args[0] instanceof Array) args = args.shift();
-        for (let child of args) {
+    constructor(...children: BasicElement[]) {
+        super();
+        for (let child of children) {
             this.add(child);
         }
     }
-    addHomeLink():Container{
+    addHomeLink(): Container {
         this.add(new HomeLink());
         return this;
     }
 }
 export class Image extends BasicElement {
+    get tagName(): string {
+        return "img";
+    }
     constructor(public src: string, public alt ? : string) {
-        super("img");
+        super();
         this.element.setAttribute("src", this.src);
         if (this.alt) this.element.setAttribute("alt", this.alt);
     }
 }
 
 export class Link extends Container {
+    get tagName(): string {
+        return "a"
+    };
     constructor({
         href,
         action
     }: {
-        href ? : string;action ?: Function
+        href ? : string;action ? : Function
     }, ...children: BasicElement[]) {
-        super("a", children);
+        super(...children);
         if (action) this.element.addEventListener("click", (event: MouseEvent) => {
             console.log(event);
             event.preventDefault();
@@ -195,42 +211,51 @@ export class ReferralBadge extends Link {
 }
 
 export class VersionInfo extends Link {
-    constructor(versionHash?:string) {
+    constructor(versionHash ? : string) {
         super({
             href: "#"
         }, new Span());
         this.addClass("versionHash");
         this.update(versionHash);
     }
-    update(versionHash){
+    update(versionHash) {
         (this.findChildren(Span)[0] as Span).update(versionHash ? versionHash : "source");
-        this.element.setAttribute("href", versionHash?`https://github.com/ttschnz/tictactoe_webapp/tree/${versionHash}`:"https://github.com/ttschnz/tictactoe_webapp/");
+        this.element.setAttribute("href", versionHash ? `https://github.com/ttschnz/tictactoe_webapp/tree/${versionHash}` : "https://github.com/ttschnz/tictactoe_webapp/");
     }
 }
 
 export class Main extends Container {
+    get tagName(): string {
+        return "main";
+    }
     constructor(...children: BasicElement[]) {
-        super("main", children);
+        super(...children);
     }
 }
 export class Footer extends BasicElement {
-    constructor(app:WebApp) {
-        super("footer");
+    get tagName(): string {
+        return "footer";
+    }
+    constructor() {
+        super();
         this.add(new VersionInfo());
         this.add(new ReferralBadge());
-        app.api("/version").then((response)=>{
-            if(response.success){
-                let versionInfo =(this.findChildren(VersionInfo)[0] as VersionInfo)
+        app.api("/version").then((response) => {
+            if (response.success) {
+                let versionInfo = (this.findChildren(VersionInfo)[0] as VersionInfo)
                 versionInfo.update(response.data.versionHash);
-                if(!response.data.upToDate) versionInfo.addClass("behind");
+                if (!response.data.upToDate) versionInfo.addClass("behind");
                 else versionInfo.addClass("upToDate");
             }
         })
     }
 }
 export class Header extends BasicElement {
+    get tagName(): string {
+        return "header";
+    }
     constructor(showLogin: boolean = true, showLogo: boolean = true) {
-        super("header");
+        super();
         app.log(app);
         if (showLogo) this.add(new TicTacToeLogo());
         if (app.credentials) this.add(new FlexContainer(new UserSpan(app.credentials.username), new Button("Sign out", app.signOut)).addClass("centered"));
@@ -239,7 +264,7 @@ export class Header extends BasicElement {
 }
 export class FlexContainer extends Container {
     constructor(...children: BasicElement[]) {
-        super(children);
+        super(...children);
         this.addClass("flex");
     }
 }
@@ -261,23 +286,26 @@ export class Tile extends FlexContainerColumn {
         this.addClass("tile");
     }
 }
-export class SmallTile extends Tile{
-    constructor(...children: BasicElement[]){
+export class SmallTile extends Tile {
+    constructor(...children: BasicElement[]) {
         super(...children);
         this.addClass("small");
     }
 }
 export class Heading extends BasicElement {
-    constructor(headingLevel: 1 | 2 | 3 | 4 | 5 | 6, content: string|BasicElement) {
+    constructor(headingLevel: 1 | 2 | 3 | 4 | 5 | 6, content: string | BasicElement) {
         super(`h${headingLevel}`);
-        if(content instanceof BasicElement) this.add(content);
+        if (content instanceof BasicElement) this.add(content);
         else this.add(document.createTextNode(content));
     }
 }
 
 export class HorizontalLine extends BasicElement {
+    get tagName(): string {
+        return "hr";
+    }
     constructor(label: string = "") {
-        super("hr");
+        super();
         this.addClass("labelledHr");
         this.element.dataset.label = label;
     }
@@ -285,8 +313,8 @@ export class HorizontalLine extends BasicElement {
 
 export class Input extends BasicElement {
     input: HTMLInputElement;
-    constructor(public name: string, public label: string, public type: string = "text", public required ?:boolean, value ? : string | undefined, public autocomplete ? : string | undefined, public validator ?: RegExp, public validatorErrorMessage?:string) {
-        super("div");
+    constructor(public name: string, public label: string, public type: string = "text", public required ? : boolean, value ? : string | undefined, public autocomplete ? : string | undefined, public validator ? : RegExp, public validatorErrorMessage ? : string) {
+        super();
         this.addClass("labeled", "input");
 
         this.input = document.createElement("input");
@@ -295,7 +323,7 @@ export class Input extends BasicElement {
         this.input.placeholder = label;
         if (value != undefined) this.value = value;
         if (autocomplete != undefined) this.input.setAttribute("autocomplete", autocomplete);
-        if (required) this.input.setAttribute("required","");
+        if (required) this.input.setAttribute("required", "");
         this.add(this.input);
 
         let labelElement = document.createElement("label");
@@ -303,8 +331,8 @@ export class Input extends BasicElement {
         labelElement.appendChild(document.createTextNode(label));
         this.add(labelElement);
 
-        if(this.validator) this.input.addEventListener("change", (_e)=>{
-            if(!this.validator.test(this.value)) this.input.setCustomValidity( this.validatorErrorMessage ?? "please enter a valid value.");
+        if (this.validator) this.input.addEventListener("change", (_e) => {
+            if (!this.validator.test(this.value)) this.input.setCustomValidity(this.validatorErrorMessage ?? "please enter a valid value.");
             else this.input.setCustomValidity("");
         });
     }
@@ -316,19 +344,35 @@ export class Input extends BasicElement {
     }
 }
 export class Form extends Container {
+    get tagName(): string {
+        return "form";
+    }
     constructor(...children: BasicElement[]) {
-        super("form", children);
+        super(...children);
         this.element.addEventListener("submit", (event) => {
             event.preventDefault();
         })
     }
 }
 
-export class MaterialIcon extends BasicElement {
-    constructor(iconName: string) {
+export class Span extends BasicElement {
+    constructor(content ? : string) {
         super("span");
+        if (content) this.add(document.createTextNode(content));
+    }
+    update(...content: Array < string | BasicElement > ) {
+        this.clear();
+        for (let item of content) {
+            if (typeof (item) == "string") this.add(document.createTextNode(item));
+            else this.add(item);
+        }
+    }
+}
+
+export class MaterialIcon extends Span {
+    constructor(iconName: string) {
+        super(iconName);
         this.addClass("material-icons");
-        this.element.innerHTML = iconName;
     }
 }
 export class MaterialIconButton extends Button {
@@ -338,7 +382,7 @@ export class MaterialIconButton extends Button {
     }
 }
 export class Warning extends FlexContainer {
-    constructor(errorText: string, options?: ErrorOptions) {
+    constructor(errorText: string, options ? : ErrorOptions) {
         super();
         this.addClass("warning");
         let errorSpan = document.createElement("span");
@@ -365,83 +409,165 @@ export class Warning extends FlexContainer {
         callback();
     }
 }
-export class Span extends BasicElement {
-    constructor(content?: string) {
-        super("span");
-        if(content) this.add(document.createTextNode(content));
-    }
-    update(...content: Array<string|BasicElement>) {
-        this.clear();
-        for(let item of content){
-            if(typeof(item) == "string") this.add(document.createTextNode(item));
-            else this.add(item);
-        }
-    }
-}
-export class TinySpan extends Span{
-    constructor(content?: string) {
+export class TinySpan extends Span {
+    constructor(content ? : string) {
         super(content);
         this.addClass("tinySpan");
     }
 }
 
-export class Popup extends FlexContainerRow{
-    constructor(...children:BasicElement[]){
+export class Popup extends FlexContainerRow {
+    constructor(...children: BasicElement[]) {
         super();
         this.add(new SmallTile(
             new FlexContainerColumn(
-                new MaterialIconButton("clear", ()=>{this.close()}).addClass("closeButton"), 
+                new MaterialIconButton("clear", () => {
+                    this.close()
+                }).addClass("closeButton"),
                 ...children)
-            ).addClass("fixedWidth")
-        )
+        ).addClass("fixedWidth"))
         this.addClass("hidden", "popup", "centered");
         // close on click if the primary target of the click was the Popup (and not its content)
-        this.element.addEventListener("click", (evt:PointerEvent)=>{if(evt.target==this.element)this.close()});
+        this.element.addEventListener("click", (evt: PointerEvent) => {
+            if (evt.target == this.element) this.close()
+        });
         setTimeout(this.fadeIn.bind(this), 20);
     }
-    fadeIn():Promise<true>{
+    fadeIn(): Promise < true > {
         this.removeClass("hidden");
-        return new Promise((resolve, _reject)=>{
-            setTimeout((()=>{
+        return new Promise((resolve, _reject) => {
+            setTimeout((() => {
                 resolve(true);
             }).bind(this), 330);
         });
     }
-    fadeOut():Promise<true>{
+    fadeOut(): Promise < true > {
         this.addClass("hidden");
-        return new Promise((resolve, _reject)=>{
-            setTimeout((()=>{
+        return new Promise((resolve, _reject) => {
+            setTimeout((() => {
                 resolve(true);
             }).bind(this), 330);
         });
     }
-    async close(){
+    async close() {
         await this.fadeOut();
         this.element.parentElement.removeChild(this.element);
     }
 }
 
-export class HomeLink extends FlexContainerRow{
-    constructor(){
+export class HomeLink extends FlexContainerRow {
+    constructor() {
         super(
             new MaterialIconButton("home", home),
             ...document.location.pathname.split("/")
-                .filter(value=>value!="")
-                .map((value, index, arr)=>new FlexContainerRow(
-                    new Span("/"),
-                    new ClickableElmnt(new Span(value), ()=>{
-                        app.loadStateByURL("/"+arr.filter((_v, index2)=>index>=index2).join("/"))
-                    })
-                ))
+            .filter(value => value != "")
+            .map((value, index, arr) => new FlexContainerRow(
+                new Span("/"),
+                new ClickableElmnt(new Span(value), () => {
+                    app.loadStateByURL("/" + arr.filter((_v, index2) => index >= index2).join("/"))
+                })
+            ))
         );
 
         this.addClass("homeLink");
     }
 }
 
-export class InfoTile extends Container{
+export class InfoTile extends Container {
     constructor(...children: BasicElement[]) {
         super(new MaterialIcon("info").addClass("infoIcon"), new Container(...children));
         this.addClass("infoTile")
+    }
+}
+
+export class Table extends Container {
+    get tagName(): string {
+        return "table";
+    }
+    constructor(heading ? : TableHeadingRow) {
+        super(heading);
+    }
+}
+
+export class TableData extends Container {
+    get tagName(): string {
+        return "td";
+    }
+    constructor(value: string | BasicElement) {
+        super();
+        if (value instanceof BasicElement) this.add(value);
+        else this.add(new Span(value));
+    }
+}
+
+export class TableHeading extends TableData {
+    get tagName(): string {
+        return "th";
+    }
+    constructor(value: string | BasicElement) {
+        super(value);
+    }
+}
+
+export class SortableTableHeading extends TableHeading {
+    _currentSorting: SortingOptions = "NONE";
+    constructor(public key: string, public onClick: (this: any, args: SortableTableHeading) => any, private tableManager: any, content ? : BasicElement) {
+        super(content ?? key);
+        this.addClass("clickable");
+        this.addClass("sortableTableHeading");
+        this.element.addEventListener("click", this.sort.bind(this));
+    }
+    sort() {
+        let parent = this.element.parentElement["instance"] as SortableTableHeadingRow;
+        (parent.findChildren(SortableTableHeading) as SortableTableHeading[]).forEach((sortableTableHeading) => {
+            if (sortableTableHeading != this) sortableTableHeading.currentSorting = "NONE";
+        })
+        this.onClick(this);
+    }
+    set currentSorting(value: SortingOptions) {
+        this._currentSorting = value;
+        this.element.dataset.currentSorting = value;
+    }
+    get currentSorting() {
+        return this._currentSorting;
+    }
+}
+
+export class TableRow extends Container {
+    get tagName(): string {
+        return "tr"
+    };
+    constructor(...values: (string | BasicElement)[]) {
+        super();
+        for (let value of values) {
+            this.add(new TableData(value))
+        }
+    }
+}
+export class TableHeadingRow extends Container {
+    get tagName(): string {
+        return "tr";
+    }
+    constructor(...keys: (string | BasicElement)[]) {
+        super();
+        for (let key of keys) {
+            this.add(new TableHeading(key));
+        }
+    }
+}
+
+export class SortableTableHeadingRow extends Container {
+    get tagName(): string {
+        return "tr";
+    }
+    constructor(onClick: (this: any, args: MouseEvent | any) => any, tableManager: any, ...keys: (string | {
+        key: string,
+        content: BasicElement
+    })[]) {
+        super();
+        for (let key of keys) {
+            if (typeof key == "string") this.add(new SortableTableHeading(key, onClick, tableManager));
+            else this.add(new SortableTableHeading(key.key, onClick, key.content))
+        }
     }
 }

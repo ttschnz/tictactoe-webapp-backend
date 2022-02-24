@@ -96,7 +96,7 @@ export default class State {
                 new Span("please define a renderFunction")
             )
         ).addHomeLink());
-        add(new Footer(app));
+        add(new Footer());
     }
     /**
      * Function to show an error to the user

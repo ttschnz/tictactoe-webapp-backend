@@ -26,7 +26,8 @@ import {
     UserInfo,
     GameBrowser,
     Authenticator,
-    PostGameInfo
+    PostGameInfo,
+    UserBrowserTable
 } from "./game.js";
 import {
     Credentials, JSONResponse
@@ -111,7 +112,7 @@ home.renderFunction = (addElement, app) => {
             )
         )
     ));
-    addElement(new Footer(app));
+    addElement(new Footer());
 }
 
 login.renderFunction = (addElement, app) => {
@@ -173,7 +174,7 @@ login.renderFunction = (addElement, app) => {
             )
         )
     ).addHomeLink());
-    addElement(new Footer(app));
+    addElement(new Footer());
 }
 
 signup.renderFunction = (addElement, app) => {
@@ -249,7 +250,7 @@ signup.renderFunction = (addElement, app) => {
             )
         )
     ).addHomeLink());
-    addElement(new Footer(app));
+    addElement(new Footer());
 }
 
 game.renderFunction = async (addElement, app) => {
@@ -266,7 +267,7 @@ game.renderFunction = async (addElement, app) => {
             gamePlayerInfo
         )
     ).addHomeLink());
-    addElement(new Footer(app));
+    addElement(new Footer());
 
     // apply game-objects
     let game = await TicTacToeGame.createNew(app, gameContainer, gameInfoContainer, gamePlayerInfo);
@@ -294,7 +295,7 @@ gameInfo.renderFunction = async (addElement, app) => {
             gamePlayerInfo
         )
     ).addHomeLink());
-    addElement(new Footer(app));
+    addElement(new Footer());
 }
 
 gameInfo.urlGetter = ((_this: State) => {
@@ -309,7 +310,7 @@ errorState.renderFunction = async (addElement, app) => {
             new Span("not found")
         ).addClass("centered")
     ).addHomeLink());
-    addElement(new Footer(app));
+    addElement(new Footer());
 }
 
 viewCompetition.renderFunction = async (addElement, app) => {
@@ -325,7 +326,7 @@ viewCompetition.renderFunction = async (addElement, app) => {
             )
         ).addClass("fixedWidth")
     ).addHomeLink());
-    addElement(new Footer(app));
+    addElement(new Footer());
 }
 
 joinCompetition.renderFunction = (addElement, app) => {
@@ -386,7 +387,7 @@ joinCompetition.renderFunction = (addElement, app) => {
             )
         ).addClass("fixedWidth")
     ).addHomeLink());
-    addElement(new Footer(app));
+    addElement(new Footer());
 }
 
 userInfo.renderFunction = async (addElement, app) => {
@@ -398,7 +399,7 @@ userInfo.renderFunction = async (addElement, app) => {
         info,
         gameBrowser
     ).addHomeLink());
-    addElement(new Footer(app));
+    addElement(new Footer());
 
     const errorPopup = new Popup(new Heading(1, "User not found"), new Span(`The user "${username}" has not been found`));
     errorPopup.close = async ()=>{
@@ -426,7 +427,7 @@ browseGames.renderFunction = (addElement, app) => {
     addElement(new Main(
         gameBrowser.addClass("allGames")
     ).addHomeLink());
-    addElement(new Footer(app));
+    addElement(new Footer());
     gameBrowser.loadData = (lastGameId?:number)=>{
         return new Promise(async(resolve, _reject)=>{
             let response:JSONResponse;
@@ -441,4 +442,14 @@ browseGames.renderFunction = (addElement, app) => {
         });
     }
     gameBrowser.displayData();
+}
+
+browseUsers.renderFunction = (addElement, app)=>{
+    addElement(new Header());
+    addElement(new Main(
+        new Tile(
+            new UserBrowserTable()
+        )
+    ));
+    addElement(new Footer());
 }

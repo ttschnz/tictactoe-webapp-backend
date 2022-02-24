@@ -96,7 +96,7 @@ class Game(db.Model, SerializerMixin):
     attacker = db.Column(db.String(16), db.ForeignKey("users.username"))
     defender = db.Column(db.String(16), db.ForeignKey("users.username"))
     winner = db.Column(db.String(16), db.ForeignKey("users.username"))
-    isEven = db.Column(db.Boolean(), default=False)
+    isDraw = db.Column(db.Boolean(), default=False)
     gameFinished = db.Column(db.Boolean(), default=False, nullable=False)
     timestamp = db.Column(db.TIMESTAMP,server_default=db.text('CURRENT_TIMESTAMP'))
     ONGOING=0
@@ -119,7 +119,7 @@ class Game(db.Model, SerializerMixin):
             if(winner != False):
                 self.winner = self.attacker if winner == 1 else self.defender
             else:
-                self.isEven = True
+                self.isDraw = True
         else:
             app.logger.info("game not finished yet")
         db.session.commit()
@@ -156,10 +156,10 @@ class Game(db.Model, SerializerMixin):
         info["winner"] = self.winner
         info["gameField"] = self.getGameField()
         info["isFinished"] = self.gameFinished
-        info["isEven"] = self.isEven
+        info["isDraw"] = self.isDraw
         return info
 
-    # gets the winner of game (string), None if even, False if ongoing
+    # gets the winner of game (string), None if draw, False if ongoing
     def getWinner(self):
         if not self.gameFinished:
             return False 
@@ -206,7 +206,7 @@ class Game(db.Model, SerializerMixin):
         return game
     
     @staticmethod
-    # @returns players number if he wins, elseif even False else None
+    # @returns players number if he wins, elseif draw False else None
     def getWinnerOfBoard(board):
         app.logger.info(f"getting winner of board={board}")
         board = board.reshape((3,3))
@@ -256,11 +256,11 @@ class Move(db.Model, SerializerMixin):
         if not len(sameMoves) == 0:
             raise ValueError("field is allready occupied by another move:", (self.gameId,sameMoves[0].gameId), (self.moveIndex, sameMoves[0].moveIndex),(self.movePosition,sameMoves[0].movePosition))
         # check if the player is allowed to do this move
-        # if the move-index is even it should be the attacker (moves 0,2,4,...)
+        # if the move-index is draw it should be the attacker (moves 0,2,4,...)
         # else it shoud be the defender (moves 1,3,5,...)
         # note: if the games player is none, "bot" is the defender (played as guest, therefore attacking)
         game = db.session.query(Game).filter(Game.gameId == self.gameId).all()[0]
-        if self.moveIndex % 2 == 1 and game.attacker == self.player: # even and player is not the attacker
+        if self.moveIndex % 2 == 1 and game.attacker == self.player: # draw and player is not the attacker
             raise ValueError(f"player {self.player} is not allowed to make move #{self.moveIndex}")
         if self.moveIndex % 2 == 0 and game.defender == self.player: # odd and player is not the defender
             raise ValueError(f"player {self.player} is not allowed to make move #{self.moveIndex}")
@@ -451,6 +451,30 @@ def getGameList():
         response["success"]=False
         app.logger.error(e)
     return json.dumps(response)
+@app.route("/users", methods=["POST"])
+def getUserList():
+    response = {"success": True}
+    LIMIT = os.environ["GAMELIST_LIMIT"]
+    try:
+        # might translate it to sqlalchemy-stuff later 
+        userList = db.session.execute("""SELECT users.username, COALESCE(wincount, 0) AS wincount, COALESCE(defeatcount, 0) AS defeatcount, COALESCE(drawcount, 0) AS drawcount from users
+LEFT JOIN (
+    SELECT username, COUNT(games.winner) AS wincount FROM users RIGHT JOIN games ON users.username = games.attacker OR users.username = games.defender WHERE games.winner = users.username AND games."gameFinished" IS TRUE GROUP BY username
+    ) as w on w.username = users.username
+LEFT JOIN(
+    SELECT username, COUNT(games.winner) AS defeatcount FROM users RIGHT JOIN games ON users.username = games.attacker OR users.username = games.defender WHERE games.winner != users.username AND games."gameFinished" IS TRUE GROUP BY username
+    ) as d on d.username = users.username
+LEFT JOIN(
+    SELECT username, COUNT(games.winner) AS drawcount FROM users RIGHT JOIN games ON users.username = games.attacker OR users.username = games.defender WHERE games.winner IS NULL AND games."gameFinished" IS TRUE GROUP BY username
+    ) as e on e.username = users.username
+    
+ORDER BY wincount DESC NULLS LAST;""").all()
+        userData = [{"username":user.username, "winCount":user.wincount, "defeatCount":user.defeatcount, "drawCount":user.drawcount} for user in userList]
+        response["data"] = userData
+    except Exception as e:
+        response["success"] = False
+        app.logger.error(e)
+    return json.dumps(response)
 
 @app.route("/users/<username>", methods=["POST"])
 def returnUserPage(username):
@@ -535,7 +559,7 @@ def sendGameInfo():
     try:
         game = Game.findByHex(request.form["gameId"])
         moves = game.getMoves()
-        response["data"]={"moves": [move.to_dict() for move in moves], "gameState":{"finished":game.gameFinished, "winner":game.winner, "isEven":game.isEven}, "players":{"attacker": game.attacker, "defender": game.defender}}
+        response["data"]={"moves": [move.to_dict() for move in moves], "gameState":{"finished":game.gameFinished, "winner":game.winner, "isDraw":game.isDraw}, "players":{"attacker": game.attacker, "defender": game.defender}}
         
         # Move.findByGame()
         # gameId = int("0x" + request.form["gameId"], 16)

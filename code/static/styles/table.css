@@ -1,0 +1,32 @@
+table, tr, td, th {
+    text-align:left;
+    border-collapse: collapse;
+    padding: 5px;
+}
+
+tr:not(:last-of-type){
+    border-bottom: 1px solid black;
+}
+
+.sortableTableHeading{
+    position:relative;
+    user-select: none;
+}
+.sortableTableHeading[data-current-sorting="ASC"]::after,
+.sortableTableHeading[data-current-sorting="DESC"]::after{
+    position:absolute;
+    right:0;
+    top:0;
+    height:100%;
+    font-family: "Material Icons";
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.sortableTableHeading[data-current-sorting="ASC"]::after {
+    content:"arrow_drop_down";
+}
+
+.sortableTableHeading[data-current-sorting="DESC"]::after {
+    content:"arrow_drop_up";
+}

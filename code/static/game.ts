@@ -1,4 +1,6 @@
-import WebApp, { JSONResponse } from "./webapp";
+import WebApp, {
+    JSONResponse
+} from "./webapp";
 import {
     BasicElement,
     Container,
@@ -15,9 +17,16 @@ import {
     FlexContainerColumn,
     ClickableElmnt,
     UserSpan,
-    HorizontalLine
+    Table,
+    TableRow,
+    SortableTableHeadingRow,
+    SortableTableHeading
 } from "./elements.js";
-import { game, home, signup} from "./states.js";
+import {
+    game,
+    home,
+    signup
+} from "./states.js";
 
 export type PositionIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 export type Coord = 0 | 1 | 2;
@@ -25,15 +34,20 @@ export interface Coords {
     0: Coord,
         1: Coord
 };
-
-export interface PostGameInfo{
+export interface UserShortStats {
+    defeatCount: number,
+        drawCount: number,
+        username: string,
+        winCount: number
+}
+export interface PostGameInfo {
     attacker: string
     defender: string
-    gameField: Array<-1|0|1>
-    gameId: number
-    isEven: boolean
+    gameField: Array < -1 | 0 | 1 >
+        gameId: number
+    isDraw: boolean
     isFinished: boolean
-    winner: string|null|false
+    winner: string | null | false
 }
 
 export interface Move {
@@ -42,20 +56,20 @@ export interface Move {
         movePosition: PositionIndex,
         player: string
 }
-export interface GameMetaData{
-    players:{
-        attacker:string|null, 
-        defender:string
-    },
-    gameState:{
-        finished:boolean,
-        winner:string|null,
-        isEven: boolean
-    }
+export interface GameMetaData {
+    players: {
+            attacker: string | null,
+            defender: string
+        },
+        gameState: {
+            finished: boolean,
+            winner: string | null,
+            isDraw: boolean
+        }
 };
 
 export class TicTacToeGame {
-    _gameMetaData:GameMetaData;
+    _gameMetaData: GameMetaData;
     attacker = {
         icon: "x",
         number: 1
@@ -86,15 +100,15 @@ export class TicTacToeGame {
      * @param authenticator instance of Authenticator to authenticate requests, only used for unfinished games
      * @param _gameData 
      */
-    constructor(public gameId: string, private app: WebApp, public renderTarget?: TicTacToeGameContainer, public infoTarget?: Container,public gamePlayerInfo?:GamePlayerInfo, public authenticator ? : Authenticator,  private _gameData: Number[][] = Array(3).fill(0).map(x => Array(3).fill(null))) {
+    constructor(public gameId: string, private app: WebApp, public renderTarget ? : TicTacToeGameContainer, public infoTarget ? : Container, public gamePlayerInfo ? : GamePlayerInfo, public authenticator ? : Authenticator, private _gameData: Number[][] = Array(3).fill(0).map(x => Array(3).fill(null))) {
         this.generateInfo();
-        if(this.renderTarget) this.refreshState(true);
+        if (this.renderTarget) this.refreshState(true);
     }
 
     set gameData(data: Number[][]) {
         this.app.log(`gameData setter called`);
-        if(this.renderTarget) this.renderTarget.activate(this);
-        if(this.renderTarget) this.renderTarget.renderData(data);
+        if (this.renderTarget) this.renderTarget.activate(this);
+        if (this.renderTarget) this.renderTarget.renderData(data);
         this.updateInfo();
         this._gameData = data;
     }
@@ -107,12 +121,12 @@ export class TicTacToeGame {
         return `${document.location.origin}/games/${this.gameId}`;
     }
 
-    set gameMetaData(value:GameMetaData){
+    set gameMetaData(value: GameMetaData) {
         this._gameMetaData = value;
         this.gamePlayerInfo.resolve(this);
-        if(value.gameState.finished) this.renderTarget.gameState = value.gameState;
+        if (value.gameState.finished) this.renderTarget.gameState = value.gameState;
     }
-    get gameMetaData():GameMetaData{
+    get gameMetaData(): GameMetaData {
         return this._gameMetaData;
     }
 
@@ -120,10 +134,11 @@ export class TicTacToeGame {
      * generates elements that should be show inside this.infotarget
      */
     generateInfo() {
-        if(this.app.isSecureContext()) this.gameNumberContainer = new Link({
-            action: (() => {
-                navigator.clipboard.writeText(this.gameUrl);
-            }).bind(this)}, 
+        if (this.app.isSecureContext()) this.gameNumberContainer = new Link({
+                action: (() => {
+                    navigator.clipboard.writeText(this.gameUrl);
+                }).bind(this)
+            },
             new FlexContainer(
                 new MaterialIcon("tag"),
                 new Span(this.gameId),
@@ -141,8 +156,10 @@ export class TicTacToeGame {
         this.gameStateContainer = new Container(new Span("connected."));
         this.gameStateContainer.addClass("gameStateContainer");
     }
-    showConfetti(){
-        window["party"].confetti(this.renderTarget.element ,{count: 80});
+    showConfetti() {
+        window["party"].confetti(this.renderTarget.element, {
+            count: 80
+        });
     }
 
     /**
@@ -153,29 +170,28 @@ export class TicTacToeGame {
         if (!this.gameNumberContainer || !this.gameStateContainer) this.generateInfo();
         let infoSpan = (this.gameStateContainer.findChildren(Span, true)[0] as Span);
         // update the gameState to "your turn" or "opponents turn" depending on who did the last move. "finished: @username" if the game is done, "finished: Guest" if it is a guest
-        if(this.gameMetaData && this.gameMetaData.gameState.finished) {
+        if (this.gameMetaData && this.gameMetaData.gameState.finished) {
             // show who won
-            infoSpan.update("finished: ",  
-                this.gameMetaData.gameState.isEven ? "nobody" : this.gameMetaData.gameState.winner == null ? "Guest" : new UserSpan(this.gameMetaData.gameState.winner), 
+            infoSpan.update("finished: ",
+                this.gameMetaData.gameState.isDraw ? "nobody" : this.gameMetaData.gameState.winner == null ? "Guest" : new UserSpan(this.gameMetaData.gameState.winner),
                 " won");
             // show confetti if you are the winner and signed in
             if (this.app.credentials && this.gameMetaData.gameState.winner == this.app.credentials.username) this.showConfetti();
             // show confetti if you are a guest and the winner is a guest (requires a rule that guests can't play against each other)
-            else if (!this.gameMetaData.gameState.isEven && !this.app.credentials && this.gameMetaData.gameState.winner == null) this.showConfetti();
+            else if (!this.gameMetaData.gameState.isDraw && !this.app.credentials && this.gameMetaData.gameState.winner == null) this.showConfetti();
             // show popup to restart Game if the game has not just been loaded and the user has access to the game
             if (!firstUpdate && this.authenticator && this.app.credentials) this.app.getState().add(new Popup(new Span("Game finished. Do you want to play again?"), new PrimaryButton("New game", game), new Button("Home", home)));
             // show popup to restart Game if the game has not just been loaded and the user has access to the game and is a guest
             else if (!firstUpdate && this.authenticator) this.app.getState().add(new Popup(new Span("Game finished "), new PrimaryButton("Play again", game), new Button("Sign up and win", signup)));
-        }
-        else if(this.authenticator) infoSpan.update(this.isMyTurn() ? "your turn" : "opponents turn")
+        } else if (this.authenticator) infoSpan.update(this.isMyTurn() ? "your turn" : "opponents turn")
         else(this.gameStateContainer.findChildren(Span, true)[0] as Span).update("observer");
         this.infoTarget.add(this.gameNumberContainer);
         this.infoTarget.add(this.gameStateContainer);
 
         // update game player info if any are found
         let gamePlayerInfo = (this.infoTarget.element.parentElement["instance"] as BasicElement).findChildren(GamePlayerInfo, true);
-        gamePlayerInfo.forEach(gpi=>(gpi as GamePlayerInfo).update(this.getNextPlayer()));
-        if(this.gameMetaData && this.gameMetaData.gameState.finished && !this.gameMetaData.gameState.isEven) gamePlayerInfo.forEach(gpi=>(gpi as GamePlayerInfo).win(this.evaluatePlayer(this.gameMetaData.gameState.winner)));
+        gamePlayerInfo.forEach(gpi => (gpi as GamePlayerInfo).update(this.getNextPlayer()));
+        if (this.gameMetaData && this.gameMetaData.gameState.finished && !this.gameMetaData.gameState.isDraw) gamePlayerInfo.forEach(gpi => (gpi as GamePlayerInfo).win(this.evaluatePlayer(this.gameMetaData.gameState.winner)));
     }
 
     /**
@@ -188,7 +204,7 @@ export class TicTacToeGame {
         y
     }: {
         x: Coord;y: Coord;
-    }): Promise<boolean> {
+    }): Promise < boolean > {
         if (this.validateMove([x, y])) {
             this.app.log(`move at ${x}, ${y}`);
             this.moves.push({
@@ -202,21 +218,23 @@ export class TicTacToeGame {
             this.gameData[y][x] = this.attacker.number;
             this.renderTarget.renderData(this.gameData);
             this.updateInfo();
-            await this.commitMove([x,y] as Coords);
+            await this.commitMove([x, y] as Coords);
             await this.refreshState();
             return true;
         } else return false;
     }
-    async commitMove(coords:Coords){
-        let response = await this.app.api(...this.authenticator.authenticate("/makeMove", {gameId:this.gameId, movePosition:TicTacToeGame.coordsToMovePosition(coords[0], coords[1])}));
-        if(response.success) return true;
+    async commitMove(coords: Coords) {
+        let response = await this.app.api(...this.authenticator.authenticate("/makeMove", {
+            gameId: this.gameId,
+            movePosition: TicTacToeGame.coordsToMovePosition(coords[0], coords[1])
+        }));
+        if (response.success) return true;
         else this.app.showError("Failed to commit move to server.", {
-            retry:(
-                ()=>{
+            retry: (
+                () => {
                     this.commitMove(coords);
                 }).bind(this)
-            }
-        );
+        });
     }
     /**
      * 
@@ -225,16 +243,16 @@ export class TicTacToeGame {
     getLastMove(): Move {
         return this.moves.sort((moveA, moveB) => moveA.moveIndex - moveB.moveIndex)[this.moves.length - 1];
     }
-    getNextPlayer(): number{
+    getNextPlayer(): number {
         this.app.log(`last move:`, this.getLastMove());
-        if(this.getLastMove() == undefined) return this.attacker.number;
+        if (this.getLastMove() == undefined) return this.attacker.number;
         else {
             // return 0 if game is finished (nobodies turn)
-            if(this.gameMetaData && this.gameMetaData.gameState.finished) return 0
+            if (this.gameMetaData && this.gameMetaData.gameState.finished) return 0
             // return attacker if last player was defender
-            if(this.defender.number == this.evaluatePlayer(this.getLastMove().player)) return this.attacker.number
+            if (this.defender.number == this.evaluatePlayer(this.getLastMove().player)) return this.attacker.number
             // return defender if last player was attacker
-            if(this.attacker.number == this.evaluatePlayer(this.getLastMove().player)) return this.defender.number
+            if (this.attacker.number == this.evaluatePlayer(this.getLastMove().player)) return this.defender.number
             // if not loaded yet, return 0 (nobodies turn)
             return 0
         }
@@ -279,9 +297,9 @@ export class TicTacToeGame {
      * @param infoTarget the element to show informations about the game
      * @returns Promisw which will be resolved to a TicTacToeGame instance
      */
-    public static async createNew(app: WebApp, renderTarget: TicTacToeGameContainer, infoTarget: Container, gamePlayerInfo:GamePlayerInfo,): Promise < TicTacToeGame > {
+    public static async createNew(app: WebApp, renderTarget: TicTacToeGameContainer, infoTarget: Container, gamePlayerInfo: GamePlayerInfo, ): Promise < TicTacToeGame > {
         let response = await app.api("/startNewGame", {}, true);
-        if (response.success) return new TicTacToeGame(response.data.gameId, app, renderTarget, infoTarget,gamePlayerInfo, app.credentials ? Authenticator.fromUsername(app.credentials) : Authenticator.fromGameKey(response.data.gameKey));
+        if (response.success) return new TicTacToeGame(response.data.gameId, app, renderTarget, infoTarget, gamePlayerInfo, app.credentials ? Authenticator.fromUsername(app.credentials) : Authenticator.fromGameKey(response.data.gameKey));
         else app.showError("Game data could not be refreshed", {
             retry: TicTacToeGame.createNew.bind(undefined, app)
         });
@@ -343,10 +361,12 @@ export class TicTacToeGame {
         });
         if (response.success) {
             this.setMoves(response.data.moves as Move[]);
-            this.gameMetaData = {players:response.data.players, gameState: response.data.gameState} as GameMetaData;
+            this.gameMetaData = {
+                players: response.data.players,
+                gameState: response.data.gameState
+            } as GameMetaData;
             this.updateInfo(firstUpdate);
-        }
-        else this.app.showError("Game data could not be refreshed", {
+        } else this.app.showError("Game data could not be refreshed", {
             retry: this.refreshState
         });
     }
@@ -378,24 +398,24 @@ export class TicTacToeGameTile extends BasicElement {
     get game(): TicTacToeGame {
         return this._game;
     }
-    
-    set disabled(value:Boolean){
+
+    set disabled(value: Boolean) {
         this._disabled = value;
         this.addClass("disabled");
     }
 
-    get disabled(){
+    get disabled() {
         return this._disabled;
     }
-    
-    async click(_event: MouseEvent): Promise<void> {
-        if(!this.disabled){
+
+    async click(_event: MouseEvent): Promise < void > {
+        if (!this.disabled) {
             if (!this.occupied) await this.game.makeMove({
                 x: this.x as Coord,
                 y: this.y as Coord
             }) || this.app.showError("invalid move: it is not your turn");
             else this.app.showError("invalid move: field is occupied")
-        }else this.app.showError("game finished, no more moves possible");
+        } else this.app.showError("game finished, no more moves possible");
     }
 
     activate(game: TicTacToeGame): void {
@@ -408,14 +428,18 @@ export class TicTacToeGameTile extends BasicElement {
         this.occupied = occupyer != this.game.emptyField.icon;
     }
 }
-export class TicTacToeMiniature extends Container{
+export class TicTacToeMiniature extends Container {
     gameTiles: TicTacToeGameTile[] = [];
     game: TicTacToeGame;
     userMap: any;
-    constructor(public gameInfo:PostGameInfo){
+    constructor(public gameInfo: PostGameInfo) {
         super();
         this.game = new TicTacToeGame(this.gameInfo.gameId.toString(16), this.app);
-        this.userMap = {"1":"x","-1":"o", "0":false}
+        this.userMap = {
+            "1": "x",
+            "-1": "o",
+            "0": false
+        }
         this.addClass("readonly")
         this.addClass("gameContainer");
         this.addClass("miniature");
@@ -426,7 +450,7 @@ export class TicTacToeMiniature extends Container{
                 this.element.appendChild(tile.element);
             }
         }
-        for(let i in this.gameInfo.gameField){
+        for (let i in this.gameInfo.gameField) {
             this.gameTiles[i].occupy(this.userMap[String(this.gameInfo.gameField[i])]);
             this.gameTiles[i].game = this.game;
         }
@@ -438,7 +462,7 @@ export class TicTacToeGameContainer extends Container {
     gameTiles: TicTacToeGameTile[] = [];
     _gameState: GameMetaData["gameState"];
     constructor() {
-        super("div");
+        super();
         this.element.classList.add("gameContainer");
         for (let y of [0, 1, 2]) {
             for (let x of [0, 1, 2]) {
@@ -449,14 +473,14 @@ export class TicTacToeGameContainer extends Container {
             }
         }
     }
-    set gameState(value:GameMetaData["gameState"]){
+    set gameState(value: GameMetaData["gameState"]) {
         this._gameState = value;
-        if(this.gameState.finished) {
-            this.gameTiles.forEach(tile=>tile.disabled=true);
+        if (this.gameState.finished) {
+            this.gameTiles.forEach(tile => tile.disabled = true);
             this.addClass("gameFinished");
         }
     }
-    get gameState(){
+    get gameState() {
         return this._gameState;
     }
     activate(game: TicTacToeGame): void {
@@ -474,18 +498,23 @@ export class Authenticator {
     token: string;
     password: string;
 
-    constructor(private authFn: (target:string, data?:any)=>[gameKey:string, data:any, sendToken:boolean]) {
+    constructor(private authFn: (target: string, data ? : any) => [gameKey: string, data: any, sendToken: boolean]) {
 
     }
 
-    authenticate(target:string, data?:any):[gameKey:string, data:any, sendToken:boolean] {
+    authenticate(target: string, data ? : any): [gameKey: string, data: any, sendToken: boolean] {
         return this.authFn(target, data);
     }
 
     public static fromGameKey(gameKey: string): Authenticator {
-        let auth = new Authenticator((target:string, data?:any)=>{
+        let auth = new Authenticator((target: string, data ? : any) => {
             console.log(`authentcating ${target} from Game Key`);
-            if(target == "/makeMove") return [target, {...data,...{gameKey}}, false];
+            if (target == "/makeMove") return [target, {
+                ...data,
+                ...{
+                    gameKey
+                }
+            }, false];
             else {
                 console.log("skipping authentication for unknown target");
                 return [target, data, false];
@@ -496,9 +525,11 @@ export class Authenticator {
     }
 
     public static fromUsername(_credentials): Authenticator {
-        return new Authenticator((target:string, data?:any)=>{
+        return new Authenticator((target: string, data ? : any) => {
             console.log(`authenticating ${target} from Username`);
-            if(target == "/makeMove") return [target, {...data}, true];
+            if (target == "/makeMove") return [target, {
+                ...data
+            }, true];
             else {
                 console.log("skipping authentication for unknown target");
                 return [target, data, true];
@@ -508,12 +539,12 @@ export class Authenticator {
 }
 
 export class PlayerInfo extends FlexContainer {
-    isBot:boolean;
+    isBot: boolean;
     map = {
         "-1": "radio_button_unchecked", // circle (o)
         "1": "close" // cross (x)
     };
-    constructor(public playerName: string|null, public role: -1 | 1) {
+    constructor(public playerName: string | null, public role: -1 | 1) {
         super();
         this.isBot = playerName == "bot";
         this.add(new MaterialIcon(this.map[String(role)]).addClass("playerSign"));
@@ -521,82 +552,82 @@ export class PlayerInfo extends FlexContainer {
         this.add(new UserSpan(playerName).addClass("playerName"));
         this.addClass("playerInfo");
     }
-    update(nextPlayer){
-        console.log(`nextPlayer:`,nextPlayer);
-        if(nextPlayer == this.role) this.addClass("myTurn");
+    update(nextPlayer) {
+        console.log(`nextPlayer:`, nextPlayer);
+        if (nextPlayer == this.role) this.addClass("myTurn");
         else this.removeClass("myTurn");
     }
-    win(player){
-        if(player == this.role) this.addClass("winningPlayer");
+    win(player) {
+        if (player == this.role) this.addClass("winningPlayer");
     }
 }
 // currently only guest vs. bot, so no complicated stuff here
 export class GamePlayerInfo extends FlexContainerRow {
     game: TicTacToeGame;
-    resolved:boolean=false;
-    constructor(game?:TicTacToeGame) {
+    resolved: boolean = false;
+    constructor(game ? : TicTacToeGame) {
         super();
         this.addClass("gamePlayerInfo", "centered");
-        if(game) this.resolve(game);
+        if (game) this.resolve(game);
     }
 
-    public static procrastinate():GamePlayerInfo{
+    public static procrastinate(): GamePlayerInfo {
         return new GamePlayerInfo();
     }
 
-    public resolve(game:TicTacToeGame){
+    public resolve(game: TicTacToeGame) {
         this.game = game;
-        if(this.game.gameMetaData && !this.resolved){
+        if (this.game.gameMetaData && !this.resolved) {
             this.add(new PlayerInfo(game.gameMetaData.players.attacker, 1));
             this.add(new Span("vs.").addClass("vs"));
             this.add(new PlayerInfo(game.gameMetaData.players.defender, -1));
             this.resolved = true;
-        }else{
+        } else {
             this.app.log("skipped player-info resolving since no gameMetaData is known or it has already been resolved");
         }
     }
-    public update(nextPlayer){
-        this.findChildren(PlayerInfo).forEach(playerInfo=>(playerInfo as PlayerInfo).update(nextPlayer))
+    public update(nextPlayer) {
+        this.findChildren(PlayerInfo).forEach(playerInfo => (playerInfo as PlayerInfo).update(nextPlayer))
     }
-    public win(player){
-        this.findChildren(PlayerInfo).forEach(playerInfo=>(playerInfo as PlayerInfo).win(player))
+    public win(player) {
+        this.findChildren(PlayerInfo).forEach(playerInfo => (playerInfo as PlayerInfo).win(player))
     }
 }
 
-export class UserInfo extends BasicElement{
-    totalCount:Span = new Span().addClass("totalCount", "userStats") as Span;
-    winCount:Span = new Span().addClass("winCount", "userStats") as Span;
-    streakCount:Span = new Span().addClass("streakCount", "userStats") as Span;
-    looseCount:Span = new Span().addClass("looseCount", "userStats") as Span;
-    ongoingCount:Span = new Span().addClass("ongoingCount", "userStats") as Span;
-    
-    constructor(private _username: string, lazy=false){
+export class UserInfo extends BasicElement {
+    totalCount: Span = new Span().addClass("totalCount", "userStats") as Span;
+    winCount: Span = new Span().addClass("winCount", "userStats") as Span;
+    streakCount: Span = new Span().addClass("streakCount", "userStats") as Span;
+    looseCount: Span = new Span().addClass("looseCount", "userStats") as Span;
+    ongoingCount: Span = new Span().addClass("ongoingCount", "userStats") as Span;
+
+    constructor(private _username: string, lazy = false) {
         super("div");
         this.addClass("userInfo");
         this.add(new Heading(1, new UserSpan(this.username)));
         this.add(new FlexContainerRow(
             new FlexContainerColumn(
-                new Heading(2,"Games Played"),
+                new Heading(2, "Games Played"),
                 this.totalCount
-            ).addClass("userStatsContainer","centered"),
+            ).addClass("userStatsContainer", "centered"),
             new FlexContainerColumn(
-                new Heading(2,"Games won"),
+                new Heading(2, "Games won"),
                 this.winCount
-            ).addClass("userStatsContainer","centered"),
+            ).addClass("userStatsContainer", "centered"),
             new FlexContainerColumn(
-                new Heading(2,"Games lost"),
+                new Heading(2, "Games lost"),
                 this.looseCount
-            ).addClass("userStatsContainer","centered"),
+            ).addClass("userStatsContainer", "centered"),
             new FlexContainerColumn(
-                new Heading(2,"Ongoing games"),
+                new Heading(2, "Ongoing games"),
                 this.ongoingCount
-            ).addClass("userStatsContainer","centered"),
+            ).addClass("userStatsContainer", "centered"),
             new FlexContainerColumn(
-                new Heading(2,"Streak"),
+                new Heading(2, "Streak"),
                 this.streakCount
-            ).addClass("userStatsContainer","centered")
+            ).addClass("userStatsContainer", "centered")
         ).addClass("userStatsOverview"));
-        if(!lazy) this.loadData().then(data=>this.displayData(data));
+        if (!lazy) this.loadData().then(data => this.displayData(data));
     }
     public get username(): string {
         return this._username.split("@").join("");
@@ -604,28 +635,30 @@ export class UserInfo extends BasicElement{
     public set username(value: string) {
         this._username = value;
     }
-    
-    async loadData(): Promise<PostGameInfo[]>{
-        return new Promise(async (resolve, _reject)=>{
-                let response = await this.app.api(`/users/${this.username}`);
-                if(response.success){
-                    resolve(response.data.games as PostGameInfo[])
-                }else this.app.showError("Could not load user-data", {retry: this.loadData.bind(this)});
+
+    async loadData(): Promise < PostGameInfo[] > {
+        return new Promise(async (resolve, _reject) => {
+            let response = await this.app.api(`/users/${this.username}`);
+            if (response.success) {
+                resolve(response.data.games as PostGameInfo[])
+            } else this.app.showError("Could not load user-data", {
+                retry: this.loadData.bind(this)
+            });
         });
     }
 
-    async displayData(data:PostGameInfo[]){
-        if(!data) data = await this.loadData();
-        this.totalCount.update(String(data.filter(gameInfo=>true).length));
-        this.winCount.update(String(data.filter(gameInfo=>gameInfo.winner == this.username).length));
-        this.streakCount.update(String(data.map(gameInfo=>gameInfo.winner == this.username ? 1 : 0).join("").split("0").pop().length));
-        this.looseCount.update(String(data.filter(gameInfo=>gameInfo.isFinished && !gameInfo.isEven && gameInfo.winner != this.username ? 1 : 0).length));
-        this.ongoingCount.update(String(data.filter(gameInfo=>!gameInfo.isFinished? 1 : 0).length));
-        
+    async displayData(data: PostGameInfo[]) {
+        if (!data) data = await this.loadData();
+        this.totalCount.update(String(data.filter(gameInfo => true).length));
+        this.winCount.update(String(data.filter(gameInfo => gameInfo.winner == this.username).length));
+        this.streakCount.update(String(data.map(gameInfo => gameInfo.winner == this.username ? 1 : 0).join("").split("0").pop().length));
+        this.looseCount.update(String(data.filter(gameInfo => gameInfo.isFinished && !gameInfo.isDraw && gameInfo.winner != this.username ? 1 : 0).length));
+        this.ongoingCount.update(String(data.filter(gameInfo => !gameInfo.isFinished ? 1 : 0).length));
+
     }
 }
 
-export class GameBrowser extends FlexContainerRow{
+export class GameBrowser extends FlexContainerRow {
     /**
      * 
      * @param _username username of the user to be shown, false if games of all users should be shown
@@ -634,10 +667,10 @@ export class GameBrowser extends FlexContainerRow{
     hasMore: boolean = true;
     gameData: PostGameInfo[] = [];
     loadMoreButton = new Button("load more", this.loadMore.bind(this)).addClass("flexNewLine");
-    constructor(private _username: string|false, lazy=false){
+    constructor(private _username: string | false, lazy = false) {
         super();
         this.addClass("justifyCenter", "gameBrowser");
-        if(!lazy) this.loadData().then(data=>this.displayData(data));
+        if (!lazy) this.loadData().then(data => this.displayData(data));
     }
     public get username(): string {
         return this._username ? this._username.split("@").join("") : "";
@@ -646,45 +679,49 @@ export class GameBrowser extends FlexContainerRow{
         this._username = value;
     }
 
-    async loadData(lastGameId?:number): Promise<PostGameInfo[]>{
-        return new Promise(async (resolve, _reject)=>{
-            let response:JSONResponse;
-            if(lastGameId) response = await this.app.api(`/users/${this.username}`, {gameId: lastGameId});
+    async loadData(lastGameId ? : number): Promise < PostGameInfo[] > {
+        return new Promise(async (resolve, _reject) => {
+            let response: JSONResponse;
+            if (lastGameId) response = await this.app.api(`/users/${this.username}`, {
+                gameId: lastGameId
+            });
             else response = await this.app.api(`/users/${this.username}`)
-            if(response.success){
+            if (response.success) {
                 resolve(response.data.games as PostGameInfo[])
-            }else this.app.showError("Could not load user-data", {retry: (()=>{
-                resolve(this.loadData(lastGameId));
-            }).bind(this)});
+            } else this.app.showError("Could not load user-data", {
+                retry: (() => {
+                    resolve(this.loadData(lastGameId));
+                }).bind(this)
+            });
         });
     }
 
-    async displayData(data?:PostGameInfo[], clear:boolean=true){
-        if(!data) data = await this.loadData();
-        
+    async displayData(data ? : PostGameInfo[], clear: boolean = true) {
+        if (!data) data = await this.loadData();
+
         this.gameData.push(...data);
-        if(clear) this.clear();
-        for(let game of data){
+        if (clear) this.clear();
+        for (let game of data) {
             this.add(
                 new Tile(
                     new FlexContainerColumn(
                         new ClickableElmnt(
                             new FlexContainerColumn(
                                 new FlexContainerRow(
-                                    new Heading(2,`#${game.gameId.toString(16)}`),
-                                    new Span(`- ${game.isFinished && !game.isEven ? game.winner == this.username ? "won" : "defeated" : game.isEven ? "even" : "ongoing"}`),
+                                    new Heading(2, `#${game.gameId.toString(16)}`),
+                                    new Span(`- ${game.isFinished && !game.isDraw ? game.winner == this.username ? "won" : "defeated" : game.isDraw ? "draw" : "ongoing"}`),
                                     // add a "continue" button if the user is part of the game and it is not finished
-                                    (!game.isFinished && this.app.credentials && [game.attacker, game.defender].indexOf(this.app.credentials.username) >=0) ? new PrimaryButton("continue", `/games/${game.gameId.toString(16)}`).addClass("continueGame") : undefined
+                                    (!game.isFinished && this.app.credentials && [game.attacker, game.defender].indexOf(this.app.credentials.username) >= 0) ? new PrimaryButton("continue", `/games/${game.gameId.toString(16)}`).addClass("continueGame") : undefined
                                 ).addClass("alignCenter", "gameTitleRow"),
                                 new TicTacToeMiniature(game)
-                            ), 
+                            ),
                             `/games/${game.gameId.toString(16)}`),
                         new FlexContainerRow(
-                            new Heading(3,new UserSpan(game.attacker)),
+                            new Heading(3, new UserSpan(game.attacker)),
                             new Span("Attacker")
                         ).addClass("attackerName"),
                         new FlexContainerRow(
-                            new Heading(3,new UserSpan(game.defender)),
+                            new Heading(3, new UserSpan(game.defender)),
                             new Span("Defender")
                         ).addClass("defenderName")
                     )
@@ -692,21 +729,64 @@ export class GameBrowser extends FlexContainerRow{
             );
         }
         // add button to load more if there are more (by default we assume there are more, the value will be changed if loadMore comes up empty handed)
-        if(this.hasMore && data.length > 0) this.add(this.loadMoreButton);
+        if (this.hasMore && data.length > 0) this.add(this.loadMoreButton);
         // show "no more games" if there are no more games
-        else{
-            this.add(new Span(this.gameData.length == 0 ? "No games" :"No more games").addClass("flexNewLine"));
+        else {
+            this.add(new Span(this.gameData.length == 0 ? "No games" : "No more games").addClass("flexNewLine"));
             // remove button to show more
             this.loadMoreButton.element.parentElement.removeChild(this.loadMoreButton.element);
         }
     }
-    async loadMore(){
-        if(this.gameData){
+    async loadMore() {
+        if (this.gameData) {
             let data = await this.loadData(this.gameData[this.gameData.length - 1].gameId);
             this.hasMore = data.length > 0;
             this.displayData(data, false);
-        }else{
+        } else {
             this.app.log(this, this.gameData);
         }
+    }
+}
+
+export class UserBrowserTable extends Table {
+    offset: number = 0;
+    data: UserShortStats[];
+    keys = {
+        "username": "username",
+        "wins": "winCount",
+        "defeats": "defeatCount",
+        "draws": "drawCount"
+    }
+    comparer:Intl.Collator = new Intl.Collator();
+    constructor() {
+        super();
+        this.add(new SortableTableHeadingRow(((item:SortableTableHeading)=>{
+            console.log(item)
+            let key = this.keys[item.key];
+            if(item.currentSorting == "ASC" || item.currentSorting == "NONE") {
+                console.log(`sorting data descending by key ${key}`);
+                this.displayUsers(this.data.sort((a,b)=>this.comparer.compare(b[key], a[key])))
+                item.currentSorting = "DESC";
+            }else{
+                console.log(`sorting data ascending by key ${key}`);
+                this.displayUsers(this.data.sort((a,b)=>this.comparer.compare(a[key], b[key])))
+                item.currentSorting = "ASC";
+            }
+        }), this, ...Object.keys(this.keys)));
+        this.loadUsers()
+    }
+    async loadUsers() {
+        let result = await this.app.api("/users", {
+            offset: this.offset
+        });
+        if(result.success)this.displayUsers(result.data)
+    }
+    displayUsers(data){
+        console.log(data);
+        this.clear(TableRow);
+        for (let user of data as UserShortStats[]) {
+            this.add(new TableRow(new UserSpan(user.username), String(user.winCount), String(user.defeatCount), String(user.drawCount)));
+        }
+        this.data = data;
     }
 }
