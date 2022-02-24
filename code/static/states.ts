@@ -78,7 +78,7 @@ home.renderFunction = (addElement, app) => {
                     new PrimaryButton(`New game`, game),
                     new Button(`Join game`, joinGame),
                     new Button(`View stats`, () => {
-                        if (app.credentials) app.loadStateByURL(`/users/${app.credentials.username}`);
+                        if (app.credentials) app.loadStateByURL(`/users/@${app.credentials.username}`);
                         else app.loadStateByURL(`/users/@bot`);
                     }),
                     new Button("Log out", app.signOut)
