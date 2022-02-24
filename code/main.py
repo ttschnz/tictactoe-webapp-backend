@@ -465,7 +465,7 @@ LEFT JOIN(
     SELECT username, COUNT(games.winner) AS defeatcount FROM users RIGHT JOIN games ON users.username = games.attacker OR users.username = games.defender WHERE games.winner != users.username AND games."gameFinished" IS TRUE GROUP BY username
     ) as d on d.username = users.username
 LEFT JOIN(
-    SELECT username, COUNT(games.winner) AS drawcount FROM users RIGHT JOIN games ON users.username = games.attacker OR users.username = games.defender WHERE games.winner IS NULL AND games."gameFinished" IS TRUE GROUP BY username
+    SELECT username, COUNT(games.*) AS drawcount FROM users RIGHT JOIN games ON users.username = games.attacker OR users.username = games.defender WHERE games.winner IS NULL AND games."gameFinished" IS TRUE GROUP BY username
     ) as e on e.username = users.username
     
 ORDER BY wincount DESC NULLS LAST;""").all()
