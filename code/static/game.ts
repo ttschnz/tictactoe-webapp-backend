@@ -773,7 +773,8 @@ export class UserBrowserTable extends Table {
                 item.currentSorting = "ASC";
             }
         }), this, ...Object.keys(this.keys)));
-        this.loadUsers()
+        this.loadUsers();
+        this.addClass("userBrowserTable");
     }
     async loadUsers() {
         let result = await this.app.api("/users", {

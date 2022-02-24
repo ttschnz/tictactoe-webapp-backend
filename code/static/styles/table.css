@@ -11,6 +11,7 @@ tr:not(:last-of-type){
 .sortableTableHeading{
     position:relative;
     user-select: none;
+    padding-right: 20px;
 }
 .sortableTableHeading[data-current-sorting="ASC"]::after,
 .sortableTableHeading[data-current-sorting="DESC"]::after{
@@ -29,4 +30,11 @@ tr:not(:last-of-type){
 
 .sortableTableHeading[data-current-sorting="DESC"]::after {
     content:"arrow_drop_up";
+}
+
+.userBrowserTable{
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }

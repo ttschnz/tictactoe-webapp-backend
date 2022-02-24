@@ -696,7 +696,7 @@ if __name__ == "__main__":
 
     try:
         print("adding sample data")
-        addSampleData()
+        addSampleData(50)
     except Exception as e:
         print(e)
 
