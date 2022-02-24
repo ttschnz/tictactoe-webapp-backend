@@ -709,7 +709,7 @@ export class GameBrowser extends FlexContainerRow {
                             new FlexContainerColumn(
                                 new FlexContainerRow(
                                     new Heading(2, `#${game.gameId.toString(16)}`),
-                                    new Span(`- ${game.isFinished && !game.isDraw ? game.winner == this.username ? "won" : "defeated" : game.isDraw ? "draw" : "ongoing"}`),
+                                    new Container(game.isFinished && !game.isDraw && game.winner ? new Container(new UserSpan(game.winner), new Span(" won")) : game.isDraw ? new Span("draw") : new Span("ongoing")),
                                     // add a "continue" button if the user is part of the game and it is not finished
                                     (!game.isFinished && this.app.credentials && [game.attacker, game.defender].indexOf(this.app.credentials.username) >= 0) ? new PrimaryButton("continue", `/games/${game.gameId.toString(16)}`).addClass("continueGame") : undefined
                                 ).addClass("alignCenter", "gameTitleRow"),
