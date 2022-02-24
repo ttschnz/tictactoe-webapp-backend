@@ -450,6 +450,6 @@ browseUsers.renderFunction = (addElement, app)=>{
         new Tile(
             new UserBrowserTable()
         )
-    ));
+    ).addHomeLink());
     addElement(new Footer());
 }

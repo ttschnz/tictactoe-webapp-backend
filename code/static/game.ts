@@ -760,6 +760,7 @@ export class UserBrowserTable extends Table {
     comparer:Intl.Collator = new Intl.Collator();
     constructor() {
         super();
+        this.addClass("loading");
         this.add(new SortableTableHeadingRow(((item:SortableTableHeading)=>{
             console.log(item)
             let key = this.keys[item.key];
@@ -781,11 +782,12 @@ export class UserBrowserTable extends Table {
             offset: this.offset
         });
         if(result.success)this.displayUsers(result.data)
+        else(this.app.showError("Could not load table", {retry: this.loadUsers.bind(this)}))
     }
-    displayUsers(data){
-        console.log(data);
+    displayUsers(data: UserShortStats[]){
+        this.removeClass("loading");
         this.clear(TableRow);
-        for (let user of data as UserShortStats[]) {
+        for (let user of data) {
             this.add(new TableRow(new UserSpan(user.username), String(user.winCount), String(user.defeatCount), String(user.drawCount)));
         }
         this.data = data;
