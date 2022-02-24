@@ -102,6 +102,7 @@ home.renderFunction = (addElement, app) => {
                 new FlexContainerColumn(
                     new PrimaryButton("Play as guest", game),
                     new Button("Browse games", browseGames),
+                    new Button("Browse users", browseUsers),
                     new Button("View competition", viewCompetition)
                 ),
                 new HorizontalLine("or"),
