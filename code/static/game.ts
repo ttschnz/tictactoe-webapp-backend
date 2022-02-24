@@ -651,7 +651,7 @@ export class UserInfo extends BasicElement {
         if (!data) data = await this.loadData();
         this.totalCount.update(String(data.filter(gameInfo => true).length));
         this.winCount.update(String(data.filter(gameInfo => gameInfo.winner == this.username).length));
-        this.streakCount.update(String(data.map(gameInfo => gameInfo.winner == this.username ? 1 : 0).join("").split("0").shift().length));
+        this.streakCount.update(String(data.filter(gameInfo=>gameInfo.isFinished).map(gameInfo => gameInfo.winner == this.username ? 1 : 0).join("").split("0").shift().length));
         this.looseCount.update(String(data.filter(gameInfo => gameInfo.isFinished && !gameInfo.isDraw && gameInfo.winner != this.username ? 1 : 0).length));
         this.ongoingCount.update(String(data.filter(gameInfo => !gameInfo.isFinished ? 1 : 0).length));
 
