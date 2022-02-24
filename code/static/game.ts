@@ -104,7 +104,7 @@ export class TicTacToeGame {
     }
 
     get gameUrl(): string {
-        return `${document.location.origin}/game/${this.gameId}`;
+        return `${document.location.origin}/games/${this.gameId}`;
     }
 
     set gameMetaData(value:GameMetaData){
@@ -674,11 +674,11 @@ export class GameBrowser extends FlexContainerRow{
                                     new Heading(2,`#${game.gameId.toString(16)}`),
                                     new Span(`- ${game.isFinished && !game.isEven ? game.winner == this.username ? "won" : "defeated" : game.isEven ? "even" : "ongoing"}`),
                                     // add a "continue" button if the user is part of the game and it is not finished
-                                    (!game.isFinished && this.app.credentials && [game.attacker, game.defender].indexOf(this.app.credentials.username) >=0) ? new PrimaryButton("continue", `/game/${game.gameId.toString(16)}`).addClass("continueGame") : undefined
+                                    (!game.isFinished && this.app.credentials && [game.attacker, game.defender].indexOf(this.app.credentials.username) >=0) ? new PrimaryButton("continue", `/games/${game.gameId.toString(16)}`).addClass("continueGame") : undefined
                                 ).addClass("alignCenter", "gameTitleRow"),
                                 new TicTacToeMiniature(game)
                             ), 
-                            `/game/${game.gameId.toString(16)}`),
+                            `/games/${game.gameId.toString(16)}`),
                         new FlexContainerRow(
                             new Heading(3,new UserSpan(game.attacker)),
                             new Span("Attacker")

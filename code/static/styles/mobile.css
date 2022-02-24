@@ -2,6 +2,7 @@
     .gamePlayerInfo {
         flex-direction: column;
         align-items: stretch;
+        text-align: center;
     }
 
     .playerInfo {

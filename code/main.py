@@ -425,7 +425,7 @@ def joinCompetition():
         response = {"success": False}
     return json.dumps(response)
 
-@app.route("/game/<gameId>", methods=["POST"])
+@app.route("/games/<gameId>", methods=["POST"])
 def returnGameInfo(gameId):
     response = {"success":True}
     try:

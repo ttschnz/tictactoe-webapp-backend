@@ -36,8 +36,8 @@ import {
 export const home = new State(0, "Home", "/");
 
 // id 1 -- gaming
-export const game = new State(1, "Game", "/game");
-export const gameInfo = new State(1.2, "Game", "/game/", RegExp("^\/game\/(.*)$"));
+export const game = new State(1, "Game", "/games/new");
+export const gameInfo = new State(1.2, "Game", "/games/", RegExp("^\/games\/(.*)$"));
 export const browseGames = new State(1.3, "Browse Games", "/games");
 export const joinGame = new State(1.4, "Join Game", "/join");
 
