@@ -35,4 +35,7 @@
     main>.homeLink {
         display: none;
     }
+    .flex.column > .button {
+        padding: 10px 20px;
+    }
 }
