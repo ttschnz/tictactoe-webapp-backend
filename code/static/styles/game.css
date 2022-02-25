@@ -251,7 +251,7 @@
 }
 
 .gameBrowser:empty::before,
-.userBrowserTable > tr:first-of-type:last-of-type::before {
+.userBrowserTable>tr:first-of-type:last-of-type::before {
     content: "";
     border: 3px solid hsl(calc(var(--accentHue) + 0deg) 20% 30%);
     border-bottom-color: transparent;

@@ -1,11 +1,13 @@
-.flex{
+.flex {
     display: flex;
-    gap:10px;
+    gap: 10px;
     flex-wrap: wrap;
 }
-.column{
+
+.column {
     flex-direction: column;
 }
-.row{
+
+.row {
     flex-direction: row;
 }

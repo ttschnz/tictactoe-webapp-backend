@@ -27,14 +27,14 @@ export default class State {
     children: BasicElement[] = [];
     regExResult = [];
     urlGetter: Function;
-    _url:string;
+    _url: string;
     /**
      * 
      * @param stateId unique id of the state
      * @param title title of the state (not used in most browsers)
      * @param url url to be shown
      */
-    constructor(public stateId: StateId, public title: string, url: string, public regEx?:RegExp) {
+    constructor(public stateId: StateId, public title: string, url: string, public regEx ? : RegExp) {
         this.url = url;
     }
     /**
@@ -49,11 +49,11 @@ export default class State {
         webAppInstance.log(`rendering State "${this.title}" (id=${this.stateId})`, this);
         this.renderFunction(this.add.bind(this), webAppInstance);
     }
-    set url(value){
+    set url(value) {
         this._url = value;
-        this.urlGetter = ()=>value;
+        this.urlGetter = () => value;
     }
-    get url(){
+    get url() {
         return this.urlGetter() || this._url;
     }
     /**
@@ -70,7 +70,7 @@ export default class State {
      */
     remove(elmnt: BasicElement) {
         if (this.children.indexOf(elmnt) >= 0) this.children.splice(this.children.indexOf(elmnt), 1);
-        if(elmnt.element.parentElement) this.renderTarget.removeChild(elmnt.element);
+        if (elmnt.element.parentElement) this.renderTarget.removeChild(elmnt.element);
     }
     /**
      * Filters the children by class
@@ -103,7 +103,7 @@ export default class State {
      * @param errorText 
      * @param options 
      */
-    showError(errorText: string, options?: ErrorOptions) {
+    showError(errorText: string, options ? : ErrorOptions) {
         this.findChildren(Warning).forEach(warning => this.remove(warning));
         this.add(new Warning(errorText, options));
     }

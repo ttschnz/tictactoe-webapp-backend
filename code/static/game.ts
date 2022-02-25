@@ -361,10 +361,10 @@ export class TicTacToeGame {
         });
         if (response.success) {
             this.setMoves(response.data.moves as Move[]);
-            this.gameMetaData = {
+            this.gameMetaData = ({
                 players: response.data.players,
                 gameState: response.data.gameState
-            } as GameMetaData;
+            }) as GameMetaData;
             this.updateInfo(firstUpdate);
         } else this.app.showError("Game data could not be refreshed", {
             retry: this.refreshState
@@ -651,7 +651,7 @@ export class UserInfo extends BasicElement {
         if (!data) data = await this.loadData();
         this.totalCount.update(String(data.filter(gameInfo => true).length));
         this.winCount.update(String(data.filter(gameInfo => gameInfo.winner == this.username).length));
-        this.streakCount.update(String(data.filter(gameInfo=>gameInfo.isFinished).map(gameInfo => gameInfo.winner == this.username ? 1 : 0).join("").split("0").shift().length));
+        this.streakCount.update(String(data.filter(gameInfo => gameInfo.isFinished).map(gameInfo => gameInfo.winner == this.username ? 1 : 0).join("").split("0").shift().length));
         this.looseCount.update(String(data.filter(gameInfo => gameInfo.isFinished && !gameInfo.isDraw && gameInfo.winner != this.username ? 1 : 0).length));
         this.ongoingCount.update(String(data.filter(gameInfo => !gameInfo.isFinished ? 1 : 0).length));
 
@@ -757,20 +757,20 @@ export class UserBrowserTable extends Table {
         "defeats": "defeatCount",
         "draws": "drawCount"
     }
-    comparer:Intl.Collator = new Intl.Collator();
+    comparer: Intl.Collator = new Intl.Collator();
     constructor() {
         super();
         this.addClass("loading");
-        this.add(new SortableTableHeadingRow(((item:SortableTableHeading)=>{
+        this.add(new SortableTableHeadingRow(((item: SortableTableHeading) => {
             console.log(item)
             let key = this.keys[item.key];
-            if(item.currentSorting == "ASC" || item.currentSorting == "NONE") {
+            if (item.currentSorting == "ASC" || item.currentSorting == "NONE") {
                 console.log(`sorting data descending by key ${key}`);
-                this.displayUsers(this.data.sort((a,b)=>this.comparer.compare(b[key], a[key])))
+                this.displayUsers(this.data.sort((a, b) => this.comparer.compare(b[key], a[key])))
                 item.currentSorting = "DESC";
-            }else{
+            } else {
                 console.log(`sorting data ascending by key ${key}`);
-                this.displayUsers(this.data.sort((a,b)=>this.comparer.compare(a[key], b[key])))
+                this.displayUsers(this.data.sort((a, b) => this.comparer.compare(a[key], b[key])))
                 item.currentSorting = "ASC";
             }
         }), this, ...Object.keys(this.keys)));
@@ -781,10 +781,12 @@ export class UserBrowserTable extends Table {
         let result = await this.app.api("/users", {
             offset: this.offset
         });
-        if(result.success)this.displayUsers(result.data)
-        else(this.app.showError("Could not load table", {retry: this.loadUsers.bind(this)}))
+        if (result.success) this.displayUsers(result.data)
+        else(this.app.showError("Could not load table", {
+            retry: this.loadUsers.bind(this)
+        }))
     }
-    displayUsers(data: UserShortStats[]){
+    displayUsers(data: UserShortStats[]) {
         this.removeClass("loading");
         this.clear(TableRow);
         for (let user of data) {

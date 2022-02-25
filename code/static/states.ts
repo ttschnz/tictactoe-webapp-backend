@@ -30,7 +30,8 @@ import {
     UserBrowserTable
 } from "./game.js";
 import {
-    Credentials, JSONResponse
+    Credentials,
+    JSONResponse
 } from "./webapp.js";
 
 // id 0 -- home
@@ -142,12 +143,12 @@ login.renderFunction = (addElement, app) => {
             });
             if (loginResponse.success) {
                 // save the token
-                app.credentials = {
+                app.credentials = ({
                     token: loginResponse.data.token,
                     tokenExpiration: loginResponse.data.token_expires,
                     username: username.value,
                     inCompetition: loginResponse.data.inCompetition
-                } as Credentials;
+                }) as Credentials;
                 // go home
                 app.setState(home);
             } else app.showError("Failed to log in", {
@@ -212,12 +213,12 @@ signup.renderFunction = (addElement, app) => {
             // signup was successful, check if direct-login was enabled
             if (response.data.token) {
                 // if a token is already proviced (direct-login), save it and go home
-                app.credentials = {
+                app.credentials = ({
                     token: response.data.token,
                     tokenExpiration: response.data.token_expires,
                     username: username.value,
                     inCompetition: response.data.inCompetition
-                } as Credentials;
+                }) as Credentials;
                 app.setState(home);
             } else {
                 // if only signup was made, go to login
@@ -320,7 +321,7 @@ viewCompetition.renderFunction = async (addElement, app) => {
         new Tile(
             new FlexContainerColumn(
                 new Heading(1, "Competition"),
-                app.credentials && app.credentials.inCompetition ? new InfoTile(new Span("You are enlisted in the competition.")) :undefined,
+                app.credentials && app.credentials.inCompetition ? new InfoTile(new Span("You are enlisted in the competition.")) : undefined,
                 new Span("To prove to you that the reinforcement learning algorithm (RL-A) we developed works and is unbeatable, we developed this web app. You can try your luck and beat the bot. The first player to beat the bot will receive a prize in the form of a bar of chocolate. To participate, you need to create an account and be the first player to beat the RL-A.*"),
                 app.credentials ? app.credentials.inCompetition ? new PrimaryButton("Start playing", game) : new PrimaryButton("Join Competition", joinCompetition) : new PrimaryButton("Sign up", signup),
                 new TinySpan("*We reserve the right to change the rules of the competition at any time without warning, including in such a way that players who would have won, lose their prize.")
@@ -351,7 +352,7 @@ joinCompetition.renderFunction = (addElement, app) => {
             gender: gender.value
         }, true);
         if (response.success) {
-            if(app.credentials){
+            if (app.credentials) {
                 app.credentials = {
                     username: app.credentials.username,
                     token: app.credentials.token,
@@ -359,7 +360,7 @@ joinCompetition.renderFunction = (addElement, app) => {
                     inCompetition: true
                 }
                 app.setState(viewCompetition);
-            }else{
+            } else {
                 // the user logged out during the request, don't do anything
             }
         } else {
@@ -403,7 +404,7 @@ userInfo.renderFunction = async (addElement, app) => {
     addElement(new Footer());
 
     const errorPopup = new Popup(new Heading(1, "User not found"), new Span(`The user "${username}" has not been found`));
-    errorPopup.close = async ()=>{
+    errorPopup.close = async () => {
         await errorPopup.fadeOut();
         errorPopup.element.parentElement.removeChild(errorPopup.element);
         app.setState(home);
@@ -429,23 +430,27 @@ browseGames.renderFunction = (addElement, app) => {
         gameBrowser.addClass("allGames")
     ).addHomeLink());
     addElement(new Footer());
-    gameBrowser.loadData = (lastGameId?:number)=>{
-        return new Promise(async(resolve, _reject)=>{
-            let response:JSONResponse;
-            if(lastGameId) response = await app.api("/games", {gameId: lastGameId});
-            else  response = await app.api("/games");
-            if(response.success){
+    gameBrowser.loadData = (lastGameId ? : number) => {
+        return new Promise(async (resolve, _reject) => {
+            let response: JSONResponse;
+            if (lastGameId) response = await app.api("/games", {
+                gameId: lastGameId
+            });
+            else response = await app.api("/games");
+            if (response.success) {
                 let data = response.data as PostGameInfo[]
                 resolve(data);
-            }else app.showError("could not fetch games", {retry: ()=>{
-                resolve(gameBrowser.loadData.bind(gameBrowser, lastGameId))
-            }})
+            } else app.showError("could not fetch games", {
+                retry: () => {
+                    resolve(gameBrowser.loadData.bind(gameBrowser, lastGameId))
+                }
+            })
         });
     }
     gameBrowser.displayData();
 }
 
-browseUsers.renderFunction = (addElement, app)=>{
+browseUsers.renderFunction = (addElement, app) => {
     addElement(new Header());
     addElement(new Main(
         new Tile(

@@ -1,6 +1,4 @@
-
-
-body{
+body {
     margin: 0;
     display: grid;
     min-height: calc(100 * var(--vh));
@@ -24,6 +22,7 @@ main {
     grid-row: 2;
     position: relative;
 }
+
 header,
 footer {
     display: flex;
@@ -36,13 +35,15 @@ footer {
     right: 0;
     left: 0;
 }
+
 header {
     top: 0;
     background: var(--lightColor100);
     height: var(--navHeight);
 }
 
-.homeLink .flex.row, .homeLink {
+.homeLink .flex.row,
+.homeLink {
     gap: 3px;
     align-items: center;
 }
@@ -54,19 +55,21 @@ footer {
 }
 
 .referralBadgeContainer,
-.versionHash{
+.versionHash {
     position: absolute;
-    bottom:0;
-}
-.versionHash{
-    left:5px;
-    max-width: 50vw;
-}
-.referralBadgeContainer{
-    right:5px;
+    bottom: 0;
 }
 
-.clickable{
+.versionHash {
+    left: 5px;
+    max-width: 50vw;
+}
+
+.referralBadgeContainer {
+    right: 5px;
+}
+
+.clickable {
     cursor: pointer;
 }
 
@@ -80,25 +83,31 @@ footer {
     min-width: min(400px, 80vw);
     min-height: 500px;
     position: relative;
-    gap:0;
+    gap: 0;
 }
-.fixedWidth.tile{
+
+.fixedWidth.tile {
     width: min(400px, 80vw);
 }
-.small.tile{
+
+.small.tile {
     min-width: unset;
     min-height: unset;
 }
-.centered{
+
+.centered {
     justify-content: center;
     align-items: center;
 }
-.justifyCenter{
+
+.justifyCenter {
     justify-content: center;
 }
-.alignCenter{
+
+.alignCenter {
     align-items: center;
 }
+
 .popup {
     position: absolute;
     top: 0;
@@ -106,17 +115,20 @@ footer {
     bottom: 0;
     right: 0;
     z-index: 9999999;
-    background: hsla(0deg,0%,0%,0.3);
+    background: hsla(0deg, 0%, 0%, 0.3);
     transition: opacity 0.3s;
 }
-.hidden.popup{
+
+.hidden.popup {
     opacity: 0;
 }
-.popup > .small.tile{
+
+.popup>.small.tile {
     transform: scale(1);
     transition: transform 0.3s;
 }
-.popup.hidden > .small.tile{
+
+.popup.hidden>.small.tile {
     transform: scale(0.7);
 }
 
@@ -125,7 +137,7 @@ footer {
     background: #ccf3c5;
     border-radius: 5px;
     padding: 9px;
-    display:grid;
+    display: grid;
     grid-template-columns: 25px 1fr;
     grid-gap: 5px;
 }

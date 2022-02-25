@@ -11,7 +11,7 @@ import {
     signup,
     errorState,
     userInfo
-    } from "./states.js";
+} from "./states.js";
 // create the app
 export const app = new WebApp();
 window["webApp"] = app;

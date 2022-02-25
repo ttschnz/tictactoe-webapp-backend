@@ -7,12 +7,15 @@ import State, {
 import {
     StateId
 } from "./state.js";
-import { errorState, home } from "./states.js";
+import {
+    errorState,
+    home
+} from "./states.js";
 
 export type JSONResponse = {
     success: boolean,
-    data?:any,
-    error?:any
+    data ? : any,
+    error ? : any
 }
 
 export type Credentials = {
@@ -40,7 +43,7 @@ export default class WebApp {
             this.render();
         });
         // custom css variable for vh for mobile (documented: https://allthingssmitty.com/2020/05/11/css-fix-for-100vh-in-mobile-webkit/)
-        window.addEventListener("resize", ()=>{
+        window.addEventListener("resize", () => {
             document.body.style.setProperty("--vh", `${window.innerHeight/100}px`);
         })
         window.dispatchEvent(new UIEvent("resize"));
@@ -51,25 +54,25 @@ export default class WebApp {
      * figures out what state is supposed to be loaded with a given url
      * @param url url to load
      */
-    loadStateByURL(url?:string){     
+    loadStateByURL(url ? : string) {
         this.log("loading state by url:", url);
-        if(url == undefined) url = document.location.pathname;
+        if (url == undefined) url = document.location.pathname;
         // find the matching state (if there are multiple, just take the first)
         let matchingStates = Object.values(app.states).filter(state => {
             // if the url matches the path
             console.log(state.url, state.regEx, url);
-            if(state.url == url) return true;
+            if (state.url == url) return true;
             // if the regex matches the path
-            if(state.regEx && state.regEx.test(url)) return true;
+            if (state.regEx && state.regEx.test(url)) return true;
         });
         this.log(`found ${Object.values(matchingStates??{}).length} matching states:`, matchingStates)
         this.setState((matchingStates ?? [])[0] ?? errorState, url);
     }
-   /**
+    /**
      * Figures out whether or not the site is loaded in a secure contet (https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts) to prevent things from not working
      * @returns whether or not to use features that are available in a secure context
      */
-    isSecureContext():boolean{
+    isSecureContext(): boolean {
         return window.isSecureContext;
     }
     api(target: string, data = {}, sendToken = false): Promise < JSONResponse > {
@@ -93,7 +96,9 @@ export default class WebApp {
                     }
                     let responseJson = await response.json();
                     // resolve with response if it is is parseable, else resolve with empty object
-                    resolve(([null, undefined, NaN].indexOf(responseJson) != -1 ? {success:false} : responseJson) as JSONResponse);
+                    resolve(([null, undefined, NaN].indexOf(responseJson) != -1 ? {
+                        success: false
+                    } : responseJson) as JSONResponse);
                 })
                 .catch((reason) => {
                     resolve({
@@ -116,9 +121,9 @@ export default class WebApp {
      * Changes the location of the url to a given states id
      * @param id Identifier of state desired to be changed to
      */
-    public setState(state: State, url?:string) {
-        if(url) state.urlGetter = ()=>url;
-        else state.urlGetter = ()=>state._url;
+    public setState(state: State, url ? : string) {
+        if (url) state.urlGetter = () => url;
+        else state.urlGetter = () => state._url;
         if (state.regEx) state.regExResult = url.match(state.regEx);
         // set state
         this.state = state;
@@ -157,7 +162,7 @@ export default class WebApp {
     /**
      * returns the credentials from localStorage, false if not authenticated
      */
-    public get credentials(): Credentials|false {
+    public get credentials(): Credentials | false {
         // construct an object containing the credentials
         let cred: Credentials = {
             username: localStorage.getItem("username"),
@@ -166,19 +171,19 @@ export default class WebApp {
             inCompetition: JSON.parse(localStorage.getItem("inCompetition")) as boolean
         };
         // if the username, the token, and an expiration date is set, and the token is still valid, return the crendentials. if not, return false
-        if(cred.username && cred.token && cred.tokenExpiration && cred.tokenExpiration <= new Date().getTime()) return cred;
+        if (cred.username && cred.token && cred.tokenExpiration && cred.tokenExpiration <= new Date().getTime()) return cred;
         else return false;
     }
 
-    public set credentials(value:Credentials|false){
-        if(!value) {
+    public set credentials(value: Credentials | false) {
+        if (!value) {
             localStorage.removeItem("token");
             localStorage.removeItem("tokenExpiration");
             localStorage.removeItem("username");
             localStorage.removeItem("inCompetition");
             app.setState(home);
             app.showError("You were signed out.");
-        }else{    
+        } else {
             localStorage.setItem("token", value.token);
             localStorage.setItem("tokenExpiration", String(value.tokenExpiration));
             localStorage.setItem("username", value.username);
@@ -187,20 +192,20 @@ export default class WebApp {
         }
     }
 
-    async checkCredentials():Promise<boolean>{
-        if(this.credentials){    
+    async checkCredentials(): Promise < boolean > {
+        if (this.credentials) {
             let response = await this.api("/checkCredentials", {}, true);
-            if(response.success && response.data == this.credentials.username) return true;
-            else{
+            if (response.success && response.data == this.credentials.username) return true;
+            else {
                 this.signOut();
                 return false;
             }
-        }else{
+        } else {
             return false;
         }
     }
 
-    signOut():void{
+    signOut(): void {
         app.credentials = false;
     }
     /**
@@ -225,7 +230,7 @@ export default class WebApp {
     log(...content: any[]): void {
         console.log(...content);
     }
-    showError(errorText: string, options?: ErrorOptions) {
+    showError(errorText: string, options ? : ErrorOptions) {
         this.log(`showing error ${errorText}`, `opts:`, options);
         this.state.showError(errorText, options);
     }

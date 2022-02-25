@@ -11,11 +11,11 @@
 @import url(styles/mobile.css);
 @import url(styles/table.css);
 
-:root{
+:root {
     --navHeight: 50px;
     --accentHue: 193deg;
 }
 
-*{
+* {
     box-sizing: border-box;
 }

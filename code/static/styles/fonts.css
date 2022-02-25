@@ -3,49 +3,54 @@ h2,
 h3,
 h4,
 h5,
-h6, 
-span, 
+h6,
+span,
 label,
-*::before, *::after {
+*::before,
+*::after {
     font-family: 'Poppins', sans-serif;
 }
 
-.noTextDecoration{
+.noTextDecoration {
     text-decoration: none;
 }
 
-a{
+a {
     cursor: pointer;
 }
 
-a .showOnHover{
+a .showOnHover {
     opacity: 0;
     transition: opacity 0.33s;
 }
-a:hover .showOnHover{
+
+a:hover .showOnHover {
     opacity: 1;
 }
 
-.material-icons{
+.material-icons {
     user-select: none;
 }
 
-.tinySpan, .versionHash{
+.tinySpan,
+.versionHash {
     font-size: 0.8em;
     color: inherit;
     overflow: hidden;
     text-overflow: ellipsis
 }
-.versionHash.upToDate::before{
+
+.versionHash.upToDate::before {
     font-family: "Material Icons";
     content: "check";
 }
+
 .versionHash.behind::before {
     font-family: "Material Icons";
     content: "query_builder";
 }
 
-.underlined{
+.underlined {
     text-decoration: underline;
 }
 
@@ -55,7 +60,7 @@ a:hover .showOnHover{
     left: 15px;
 }
 
-main > .homeLink {
+main>.homeLink {
     top: 15px;
     left: 15px;
     bottom: unset;
