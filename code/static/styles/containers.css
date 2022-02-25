@@ -60,6 +60,7 @@ footer {
 }
 .versionHash{
     left:5px;
+    max-width: 50vw;
 }
 .referralBadgeContainer{
     right:5px;
