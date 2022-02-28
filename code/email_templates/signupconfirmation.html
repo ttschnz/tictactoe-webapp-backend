@@ -1,18 +1,74 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <title>Thank you for joining us! - TicTacToe</title>
-    </head>
-    <body>
+
+<head>
+    <title>Thank you for joining us! - TicTacToe</title>
+    <style>
+        * {
+            font-family: sans-serif;
+        }
+
+        body {
+            background-color: #f9f8f8;
+            display: flex;
+            justify-content: center;
+            height: 100%;
+        }
+        
+        main{
+            padding: 20px;
+            padding-bottom: 30px;
+            box-shadow: 2px 2px 6px 0px #0000002b;
+            border-radius: 5px;
+            background: white;
+            min-width: min(400px, 80vw);
+            min-height: 500px;
+            position: relative;
+            gap: 0;
+            display:flex;
+            flex-direction: column;
+            margin-top: 20px;
+        }
+
+        h1 {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+        }
+        
+        svg {
+            height: 50px;
+            width: 50px;
+        }
+    </style>
+</head>
+
+<body>
+    <main>
+
+
         <h1>
+            <svg width="100mm" height="100mm" version="1.1" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <g transform="matrix(1.0969 0 0 1.6998 -44.844 -174.91)" fill="none" stroke-width="2px" stroke="#000">
+                <path d="m65.481 102.9-1.0691 58.532"/>
+                <path d="m90.738 105.04 16.036 56.661"/>
+                <path d="m40.892 118 91.139 6.4145"/>
+                <path d="m41.16 145.13 84.457 3.3409"/>
+                <path d="m70.559 129.09 20.58 10.691"/>
+                <path d="m66.55 140.58 23.52-12.027"/>
+                </g>
+                </svg>
             Hello @{username}!
         </h1>
         <p>
             Thank you for creating an account on <a href="{domain}">{domain}</a>.
             <br>
-            Have a look at our competition and win: <a href="{domain}/competition">{domain}/competition</a>
+            Have a look at our competition and take a chance at winning: <a
+                href="{domain}/competition">{domain}/competition</a>
             <br>
             Good game! 🎮🥳
         </p>
-    </body>
+    </main>
+</body>
+
 </html>

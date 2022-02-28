@@ -1,6 +1,6 @@
 Hello @{username}!
 
 Thank you for creating an account on {domain}.
-Have a look at our competition and win: {domain}/competition
+Have a look at our competition and take a chance at winning: {domain}/competition
 
 Good game!
