@@ -412,7 +412,11 @@ def signupSubmission():
         user = User.generateFromRequest(request)
         # generate a token
         response = Session.generateToken(user.username).toResponse()
-        sendMail(user.email, "Thanks for joining us!", EMAIL_TEMPLATES["signupconfirmation"], {"username":user.username, "domain": os.environ["DOMAIN"]})
+        try:
+            sendMail(user.email, "Thanks for joining us!", EMAIL_TEMPLATES["signupconfirmation"], {"username":user.username, "domain": os.environ["DOMAIN"]})
+        except Exception as e:
+            db.session.delete(user)
+            raise Exception(e)
     except Exception as e:
         app.logger.error(e)
         response = {"success": False}
