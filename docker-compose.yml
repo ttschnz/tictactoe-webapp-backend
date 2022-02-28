@@ -49,6 +49,15 @@ services:
     ports:
      - "25:25"
 
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    ports:
+      - 81:80/tcp 
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@example.com
+      - PGADMIN_DEFAULT_PASSWORD=password
+
 volumes:
   dbInit:
   dbdata:
