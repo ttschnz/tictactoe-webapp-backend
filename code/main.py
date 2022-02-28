@@ -56,6 +56,7 @@ class User(db.Model, SerializerMixin):
     key=db.Column(db.String(256))
     salt=db.Column(db.String(256))
     timestamp = db.Column(db.TIMESTAMP,server_default=db.text('CURRENT_TIMESTAMP'))
+    disableMail = db.Column(db.Boolean(), nullable=False, default=False)
     def __init__(self, username, email, key, salt):
         if len(username) < 2:
             raise Exception("Username too short")
@@ -115,13 +116,30 @@ class Game(db.Model, SerializerMixin):
         board = self.getNumpyGameField()
         winner = self.getWinnerOfBoard(board)
         app.logger.info(f"determined winner: {winner}")
-        if(winner == False or winner == 1 or winner == -1):
+        if not self.gameFinished and winner == False or winner == 1 or winner == -1:
             app.logger.info("game finished")
             self.gameFinished = True
             if(winner != False):
                 self.winner = self.attacker if winner == 1 else self.defender
             else:
                 self.isDraw = True
+            players = [User.find(self.attacker).one(), User.find(self.defender).one()]
+            for player in players:
+                if not player.disableMail:
+                    try:
+                        sendMail(player.email, "Your game", EMAIL_TEMPLATES["gamefinished"], {
+                            "attacker":self.attacker, 
+                            "defender":self.defender, 
+                            "gameField":[{1:"x", 0:"◻", -1:"o"}[i] for i in self.getGameField()], 
+                            "winner":self.winner, 
+                            "isDraw":self.isDraw, 
+                            "domain":os.environ["DOMAIN"], 
+                            "username": player.username, 
+                            "gameId":self.idToHexString(),
+                            "stateText": "won" if player.username == self.winner else "lost" if not self.isDraw else "ended the game in a draw"
+                            })
+                    except Exception as e:
+                        app.logger.error("failed to send email to user", player)
         else:
             app.logger.info("game not finished yet")
         db.session.commit()

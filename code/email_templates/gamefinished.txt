@@ -1,0 +1,11 @@
+Hello @{username}!
+
+You have {stateText}: {domain}/games/#{gameId}
+
+Look at the finishing board:
+{gameField[0]}{gameField[1]}{gameField[2]}
+{gameField[3]}{gameField[4]}{gameField[5]}
+{gameField[6]}{gameField[7]}{gameField[8]}
+
+@{attacker}: x ({domain}/users/@{attacker})
+@{defender}: o ({domain}/users/@{defender})

@@ -1,0 +1,51 @@
+<html>
+    <head></head>
+    <body>
+        <main>
+            <h1>
+                Hello @{username}!
+            </h1>
+            <div>
+                <p>
+                    You have {stateText}: <a href="{domain}/games/#{gameId}">#{gameId}</a>
+                </p>
+                <p>
+                    Look at the finishing board:
+                    <table>
+                        <tbody>
+                            <tr>
+                                <td>{gameField[0]}</td>
+                                <td>{gameField[1]}</td>
+                                <td>{gameField[2]}</td>
+                            </tr>
+                        <tbody>
+                            <tr>
+                                <td>{gameField[3]}</td>
+                                <td>{gameField[4]}</td>
+                                <td>{gameField[5]}</td>
+                            </tr>
+                        <tbody>
+                            <tr>
+                                <td>{gameField[6]}</td>
+                                <td>{gameField[7]}</td>
+                                <td>{gameField[8]}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <table>
+                        <tbody>
+                            <tr>
+                                <th><a href="{domain}/users/@{attacker}">@{attacker}</a></th>
+                                <td>x</td>
+                            </tr>
+                            <tr>
+                                <th><a href="{domain}/users/@{defender}">@{defender}</a></th>
+                                <td>o</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </p>
+            </div>
+        </main>
+    </body>
+</html>

@@ -6,7 +6,7 @@ smtp_server = "smtp"
 port = os.environ["SMTP_PORT"]
 sender = f"no-reply@{os.environ['DOMAIN']}"
 
-def sendMail(reciever, subject, template,templateContent):
+def sendMail(reciever, subject, template, templateContent):
     message = MIMEMultipart("alternative")
     message["Subject"]=subject
     message["From"]=sender
@@ -31,6 +31,7 @@ class EMailTemplate:
 
 
 EMAIL_TEMPLATES = {
-    "signupconfirmation": EMailTemplate("signupconfirmation")
+    "signupconfirmation": EMailTemplate("signupconfirmation"),
+    "gamefinished": EMailTemplate("gamefinished"),
 }
 
