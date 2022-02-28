@@ -23,6 +23,8 @@ sys.path.insert(0, '/code/RL-A/')
 from TTTsolver import TicTacToeSolver, boardify
 solver = TicTacToeSolver("presets/policy_p1","presets/policy_p2").solveState
 
+from mail import sendMail, EMAIL_TEMPLATES
+
 # initialize flask application with template_folder pointed to public_html (relative to this file)
 app=Flask(__name__)
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = True
@@ -410,6 +412,7 @@ def signupSubmission():
         user = User.generateFromRequest(request)
         # generate a token
         response = Session.generateToken(user.username).toResponse()
+        sendMail(user.email, "Thanks for joining us!", EMAIL_TEMPLATES["signupconfirmation"], {"username":user.username, "domain": os.environ["DOMAIN"]})
     except Exception as e:
         app.logger.error(e)
         response = {"success": False}

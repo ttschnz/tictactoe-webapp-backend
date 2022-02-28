@@ -42,6 +42,13 @@ services:
       - db
         # condition: service_healthy
 
+  smtp:
+    image: namshi/smtp
+    container_name: smtp
+    restart: always
+    ports:
+     - "25:25"
+
 volumes:
   dbInit:
   dbdata:

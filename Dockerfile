@@ -1,5 +1,6 @@
 FROM nikolaik/python-nodejs:latest
 
+RUN pip install setuptools
 # install flask
 RUN pip install flask
 # install db tool
@@ -20,6 +21,9 @@ RUN pip install flask_apscheduler
 # RUN pip install traceback
 # numpy for RL-A
 RUN pip install numpy
+# emailing
+# RUN pip install smtplib
+# RUN pip install email
 
 # install tsc for compiling ts to js
 RUN npm install -g typescript
