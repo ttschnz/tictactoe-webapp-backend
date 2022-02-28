@@ -56,7 +56,7 @@ input~label {
     padding-right: 5px;
 }
 
-input:placeholder-shown~label {
+input:placeholder-shown:not(:focus)~label{
     transform: translateY(-4px) scale(.8);
 }
 
