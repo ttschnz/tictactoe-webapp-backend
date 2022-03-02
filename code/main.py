@@ -621,8 +621,8 @@ def test():
     # return secrets.token_hex(256//2)
 
 # for .well-known stuff (e.g. acme-challenges for ssl-certs)
-#
-# note that directory traversal volnerabilities are prevented by send_from_directory 
+# 
+# note that directory traversal vulnerabilities are prevented by send_from_directory 
 # as it checks if the path of the absolute file is inside the given directory (see https://tedboy.github.io/flask/_modules/flask/helpers.html#send_from_directory)
 @app.route("/.well-known/<path:filename>")
 def wellKnown(filename):
@@ -674,39 +674,7 @@ if __name__ == "__main__":
             print(e)
             return False
 
-    # starts https server, returns false if failed
-    # def startHttpsServer():
-    #     try:
-    #         if "CERT_DIR" not in os.environ:
-    #             raise ValueError("CERT_DIR not given (config in .env file)")
-    #         if "HTTPS_PORT" not in os.environ:
-    #             raise ValueError("HTTPS_PORT not given (config in .env file)")
-    #         sslContext = tuple([os.path.join(os.environ["CERT_DIR"], i) for i in ['cert.pem', 'privkey.pem']])
-    #         print("starting server with ssl on port", os.environ["HTTPS_PORT"], "ssl context=", sslContext)
-    #         # 0.0.0.0 => allow all adresses to have access (important for docker-environment)
-    #         httpsServer = WSGIServer(('0.0.0.0', int(os.environ["HTTPS_PORT"])), app, certfile=sslContext[0], keyfile=sslContext[1])
-    #         httpsServer.serve_forever()
-    #         return True
-    #         # app.run(host="0.0.0.0", port=os.environ["HTTPS_PORT"], ssl_context=sslContext)
-    #     except Exception as e:
-    #         print("ERROR starting server on https:", e)
-    #         print("starting HTTP server instead...")
-    #         os.environ["HTTP_PORT"] = 80 if not "HTTP_PORT" in os.environ else os.environ["HTTP_PORT"]
-    #         return False
-
-    # starts http server, returns false if failed
-    # def startHttpServer():
-    #     try:
-    #         # 0.0.0.0 => allow all adresses to have access (important for docker-environment)
-    #         print("starting server without ssl on port", os.environ["HTTP_PORT"])
-    #         # app.run(host="0.0.0.0", port=os.environ["HTTP_PORT"])
-    #         httpServer = WSGIServer(('0.0.0.0', int(os.environ["HTTP_PORT"])), app)
-    #         httpServer.serve_forever()
-    #         return True
-    #     except Exception as e:
-    #         print("ERROR starting server on http:", e)
-    #         return False
-
+  
     # app.debug = True
     
     # wait for database to be reachable before starting flask server
@@ -755,6 +723,7 @@ if __name__ == "__main__":
             "keyfile": f"{os.environ['CERT_DIR']}/privkey.pem",
         })
         https_server.listen(os.environ["HTTPS_PORT"])
+
     print("servers started")
     # start an IOLoop
     tornado.ioloop.IOLoop.current().start()
