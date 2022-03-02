@@ -337,7 +337,9 @@ joinCompetition.renderFunction = (addElement, app) => {
         app.setState(login);
         app.showError("please log in to join competition.");
         return
-    };
+    }else if(app.credentials.inCompetition){
+        app.setState(viewCompetition);
+    }
     let firstName = new Input("firstName", "First name", "text", true, "", "first-name", /^.{1,}$/gm, "Please enter your first name");
     let lastName = new Input("lastName", "Last name", "text", true, "", "last-name", /^.{1,}$/gm, "Please enter your last name");
     let age = new Input("age", "Age", "number", true, "", "age", /^[1-9]?[0-9]$/gm, "Please enter any value between 0 and 99");
