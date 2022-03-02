@@ -12,7 +12,7 @@ def sendMail(reciever, subject, template, templateContent):
     message["From"]=sender
     message["To"]=reciever
     message.attach(MIMEText(template.txtContent.format(**templateContent), "plain", "UTF-8"))
-    message.attach(MIMEText(template.htmlContent.format(**templateContent), "html", "UTF-8"))
+    message.attach(MIMEText(template.htmlContent.format(**templateContent, **{"style":EMAIL_STYLE}), "html", "UTF-8"))
 
     with smtplib.SMTP(smtp_server, port) as server:
         server.sendmail(sender, reciever, message.as_string())
@@ -36,3 +36,5 @@ EMAIL_TEMPLATES = {
     "joinedcompetition": EMailTemplate("joinedcompetition"),
 }
 
+with open("/code/static/styles/_email_style.css", "r") as f:
+    EMAIL_STYLE = f"<style>{css}</style>".format({"css":f.read()})
