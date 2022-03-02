@@ -636,10 +636,10 @@ def robots():
 if __name__ == "__main__":   
     versionHash = os.popen("git rev-parse HEAD").read().rstrip()
     # compile ts to js
-    # print("starting compiling watch...")
-    # subprocess.Popen(['tsc', '--watch'], cwd="/code")
-    # print(os.popen("tsc --project /code/tsconfig.json").read())
-    # print("watch started")
+    print("starting compiling watch...")
+    subprocess.Popen(['tsc', '--watch'], cwd="/code")
+    print(os.popen("tsc --project /code/tsconfig.json").read())
+    print("watch started")
 
     # add sample data for testing
     def addSampleData(dataCount=0):
