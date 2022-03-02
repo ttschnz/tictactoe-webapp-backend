@@ -1,6 +1,6 @@
 Hello @{username}!
 
-You have {stateText}: {domain}/games/#{gameId}
+You have {stateText}: {domain}/games/{gameId}
 
 Look at the finishing board:
 {gameField[0]}{gameField[1]}{gameField[2]}
