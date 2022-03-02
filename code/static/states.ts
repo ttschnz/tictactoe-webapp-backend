@@ -337,87 +337,89 @@ joinCompetition.renderFunction = (addElement, app) => {
         app.setState(login);
         app.showError("please log in to join competition.");
         return
-    }else if(app.credentials.inCompetition){
+    } else if (app.credentials.inCompetition) {
         app.setState(viewCompetition);
-    }
-    let firstName = new Input("firstName", "First name", "text", true, "", "first-name", /^.{1,}$/gm, "Please enter your first name");
-    let lastName = new Input("lastName", "Last name", "text", true, "", "last-name", /^.{1,}$/gm, "Please enter your last name");
-    let age = new Input("age", "Age", "number", true, "", "age", /^[1-9]?[0-9]$/gm, "Please enter any value between 0 and 99");
-    let gender = new Input("gender", "Gender (m/f/?)", "text", true, "", "gender", /^(m|f|\?)$/gm, "Valid options are: 'm', 'f', and '?'");
+    } else {
 
-    const joinFunction = async () => {
-        // send data to the server
-        let response = await app.api("/joinCompetition", {
-            firstName: firstName.value,
-            lastName: lastName.value,
-            age: age.value,
-            gender: gender.value
-        }, true);
-        if (response.success) {
-            if (app.credentials) {
-                app.credentials = {
-                    username: app.credentials.username,
-                    token: app.credentials.token,
-                    tokenExpiration: app.credentials.tokenExpiration,
-                    inCompetition: true
+        let firstName = new Input("firstName", "First name", "text", true, "", "first-name", /^.{1,}$/gm, "Please enter your first name");
+        let lastName = new Input("lastName", "Last name", "text", true, "", "last-name", /^.{1,}$/gm, "Please enter your last name");
+        let age = new Input("age", "Age", "number", true, "", "age", /^[1-9]?[0-9]$/gm, "Please enter any value between 0 and 99");
+        let gender = new Input("gender", "Gender (m/f/?)", "text", true, "", "gender", /^(m|f|\?)$/gm, "Valid options are: 'm', 'f', and '?'");
+
+        const joinFunction = async () => {
+            // send data to the server
+            let response = await app.api("/joinCompetition", {
+                firstName: firstName.value,
+                lastName: lastName.value,
+                age: age.value,
+                gender: gender.value
+            }, true);
+            if (response.success) {
+                if (app.credentials) {
+                    app.credentials = {
+                        username: app.credentials.username,
+                        token: app.credentials.token,
+                        tokenExpiration: app.credentials.tokenExpiration,
+                        inCompetition: true
+                    }
+                    app.setState(viewCompetition);
+                } else {
+                    // the user logged out during the request, don't do anything
                 }
-                app.setState(viewCompetition);
             } else {
-                // the user logged out during the request, don't do anything
+                if (response.error) app.showError(`Error joining competition: ${response.error}`, {
+                    retry: joinFunction
+                });
+                else app.showError("Error joining competition. Please check your inputs and try again later.", {
+                    retry: joinFunction
+                })
             }
-        } else {
-            if (response.error) app.showError(`Error joining competition: ${response.error}`, {
-                retry: joinFunction
-            });
-            else app.showError("Error joining competition. Please check your inputs and try again later.", {
-                retry: joinFunction
-            })
-        }
-    };
+        };
 
-    addElement(new Header());
-    addElement(new Main(
-        new Tile(
-            new Form(
-                new FlexContainerColumn(
-                    new Heading(1, "Join Competition"),
-                    firstName,
-                    lastName,
-                    age,
-                    gender,
-                    new PrimaryButton("Join Competition", joinFunction),
-                    new TinySpan("By joining the competition, you agree to our terms. We reserve the right to change the rules of the competition at any time without warning, including in such a way that players who would have won, lose their prize.")
+        addElement(new Header());
+        addElement(new Main(
+            new Tile(
+                new Form(
+                    new FlexContainerColumn(
+                        new Heading(1, "Join Competition"),
+                        firstName,
+                        lastName,
+                        age,
+                        gender,
+                        new PrimaryButton("Join Competition", joinFunction),
+                        new TinySpan("By joining the competition, you agree to our terms. We reserve the right to change the rules of the competition at any time without warning, including in such a way that players who would have won, lose their prize.")
+                    )
                 )
-            )
-        ).addClass("fixedWidth")
-    ).addHomeLink());
-    addElement(new Footer());
-}
-
-userInfo.renderFunction = async (addElement, app) => {
-    let username = app.getState().regExResult[1];
-    let info = new UserInfo(username, true);
-    let gameBrowser = new GameBrowser(username, true);
-    addElement(new Header());
-    addElement(new Main(
-        info,
-        gameBrowser
-    ).addHomeLink());
-    addElement(new Footer());
-
-    const errorPopup = new Popup(new Heading(1, "User not found"), new Span(`The user "${username}" has not been found`));
-    errorPopup.close = async () => {
-        await errorPopup.fadeOut();
-        errorPopup.element.parentElement.removeChild(errorPopup.element);
-        app.setState(home);
+            ).addClass("fixedWidth")
+        ).addHomeLink());
+        addElement(new Footer());
     }
 
-    app.api(`/users/${username.split("@").join("")}`).then((response) => {
-        if (response.success) {
-            gameBrowser.displayData(response.data.games);
-            info.displayData(response.data.games);
-        } else addElement(errorPopup);
-    });
+    userInfo.renderFunction = async (addElement, app) => {
+        let username = app.getState().regExResult[1];
+        let info = new UserInfo(username, true);
+        let gameBrowser = new GameBrowser(username, true);
+        addElement(new Header());
+        addElement(new Main(
+            info,
+            gameBrowser
+        ).addHomeLink());
+        addElement(new Footer());
+
+        const errorPopup = new Popup(new Heading(1, "User not found"), new Span(`The user "${username}" has not been found`));
+        errorPopup.close = async () => {
+            await errorPopup.fadeOut();
+            errorPopup.element.parentElement.removeChild(errorPopup.element);
+            app.setState(home);
+        }
+
+        app.api(`/users/${username.split("@").join("")}`).then((response) => {
+            if (response.success) {
+                gameBrowser.displayData(response.data.games);
+                info.displayData(response.data.games);
+            } else addElement(errorPopup);
+        });
+    }
 }
 
 userInfo.urlGetter = (_args) => {
