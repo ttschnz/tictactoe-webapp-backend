@@ -599,7 +599,6 @@ def getVersion():
     response = {"success":True}
     try:
         remoteVersion = os.popen("git ls-remote origin -h HEAD").read().rstrip()
-        app.logger.info('versions',remoteVersion, versionHash)
         response["data"]={"versionHash":versionHash, "upToDate":remoteVersion.startswith(versionHash)}
     except Exception as e:
         response["success"] = False
