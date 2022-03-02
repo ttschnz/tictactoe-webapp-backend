@@ -444,6 +444,7 @@ def signupSubmission():
 def joinCompetition():
     try:
         competition = Competition.generateFromRequest(request)
+        sendMail(User.find(competition.username).one().email, "Confirmation", EMAIL_TEMPLATES["joinedcompetition"], {"username":competition.username, "domain":os.environ["DOMAIN"]})
         response = {"success":True}
     except Exception as e:
         app.logger.error(e)

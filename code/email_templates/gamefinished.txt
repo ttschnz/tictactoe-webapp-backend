@@ -9,3 +9,5 @@ Look at the finishing board:
 
 @{attacker}: x ({domain}/users/@{attacker})
 @{defender}: o ({domain}/users/@{defender})
+
+Good game!

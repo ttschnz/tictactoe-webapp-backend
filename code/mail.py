@@ -33,5 +33,6 @@ class EMailTemplate:
 EMAIL_TEMPLATES = {
     "signupconfirmation": EMailTemplate("signupconfirmation"),
     "gamefinished": EMailTemplate("gamefinished"),
+    "joinedcompetition": EMailTemplate("joinedcompetition"),
 }
 

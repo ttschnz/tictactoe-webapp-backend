@@ -1,0 +1,6 @@
+Hello @{username}!
+
+We have recieved your registration for the competition.
+Try your best at beating the bot now: {domain}/games/new
+
+Good game!
