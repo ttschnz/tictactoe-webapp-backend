@@ -37,4 +37,4 @@ EMAIL_TEMPLATES = {
 }
 
 with open("/code/static/styles/_email_style.css", "r") as f:
-    EMAIL_STYLE = f"<style>{css}</style>".format({"css":f.read()})
+    EMAIL_STYLE = f"<style>{f.read()}</style>"
