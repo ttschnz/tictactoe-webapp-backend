@@ -10,7 +10,8 @@ RUN pip install psycopg2-binary
 # crypto library
 RUN pip install pycrypto
 # better server
-RUN pip install gevent
+# RUN pip install gevent
+RUN pip install tornado
 # query result to json
 RUN pip install SQLAlchemy-serializer
 # prettify html before send

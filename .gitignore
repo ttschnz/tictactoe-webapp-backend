@@ -1,3 +1,6 @@
+# configuration
+.env
+
 #compiled scripts
 *.js
 *.js.map

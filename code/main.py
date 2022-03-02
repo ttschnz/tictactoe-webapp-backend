@@ -1,7 +1,7 @@
 # since the builtin flask server is not for production, we use the gevent
-from gevent.pywsgi import WSGIServer
+# from gevent.pywsgi import WSGIServer
 # flask for serving files
-from flask import Flask, render_template as rt_, request, jsonify, send_from_directory, abort
+from flask import Flask, render_template as rt_, request, jsonify, send_from_directory, abort, redirect
 # SQLAlchemy to access the database
 from flask_sqlalchemy import SQLAlchemy
 # serializer to transform query result to json
@@ -18,6 +18,8 @@ import subprocess
 # import traceback
 from datetime import datetime
 
+import tornado.httpserver
+import tornado.wsgi
 # add RL-A to importable 
 sys.path.insert(0, '/code/RL-A/')
 from TTTsolver import TicTacToeSolver, boardify
@@ -47,7 +49,8 @@ def cronjob(*args):
     else:
         app.logger.info("no update required")
     return 
-
+def sslEnabled():
+    return "ENABLE_SSL" in os.environ and os.environ["ENABLE_SSL"].upper() == "TRUE"
 # table to store users and their password to
 class User(db.Model, SerializerMixin):
     __tablename__ = "users"
@@ -400,7 +403,10 @@ def serviceWorker():
 @app.route('/', defaults={'path': ''}, methods=["GET"])
 @app.route('/<path:path>', methods=["GET"])
 def appLoader(path):
-    return send_from_directory('static', "appLoader.html")
+    if sslEnabled() and request.scheme == "http":
+        return redirect(request.url.replace("http://", "https://"))
+    else:
+        return send_from_directory('static', "appLoader.html")
 
 # authentication
 @app.route("/getsalt", methods=["POST"])
@@ -626,14 +632,14 @@ def wellKnown(filename):
 def robots():
     return "User-agent: *\nDisallow: *"
 
-# only debug if not as module
+
 if __name__ == "__main__":   
     versionHash = os.popen("git rev-parse HEAD").read().rstrip()
     # compile ts to js
-    print("starting compiling watch...")
-    subprocess.Popen(['tsc', '--watch'], cwd="/code")
+    # print("starting compiling watch...")
+    # subprocess.Popen(['tsc', '--watch'], cwd="/code")
     # print(os.popen("tsc --project /code/tsconfig.json").read())
-    print("watch started")
+    # print("watch started")
 
     # add sample data for testing
     def addSampleData(dataCount=0):
@@ -669,44 +675,44 @@ if __name__ == "__main__":
             return False
 
     # starts https server, returns false if failed
-    def startHttpsServer():
-        try:
-            if "CERT_DIR" not in os.environ:
-                raise ValueError("CERT_DIR not given (config in .env file)")
-            if "HTTPS_PORT" not in os.environ:
-                raise ValueError("HTTPS_PORT not given (config in .env file)")
-            sslContext = tuple([os.path.join(os.environ["CERT_DIR"], i) for i in ['cert.pem', 'privkey.pem']])
-            print("starting server with ssl on port", os.environ["HTTPS_PORT"], "ssl context=", sslContext)
-            # 0.0.0.0 => allow all adresses to have access (important for docker-environment)
-            httpsServer = WSGIServer(('0.0.0.0', int(os.environ["HTTPS_PORT"])), app, certfile=sslContext[0], keyfile=sslContext[1])
-            httpsServer.serve_forever()
-            return True
-            # app.run(host="0.0.0.0", port=os.environ["HTTPS_PORT"], ssl_context=sslContext)
-        except Exception as e:
-            print("ERROR starting server on https:", e)
-            print("starting HTTP server instead...")
-            os.environ["HTTP_PORT"] = 80 if not "HTTP_PORT" in os.environ else os.environ["HTTP_PORT"]
-            return False
+    # def startHttpsServer():
+    #     try:
+    #         if "CERT_DIR" not in os.environ:
+    #             raise ValueError("CERT_DIR not given (config in .env file)")
+    #         if "HTTPS_PORT" not in os.environ:
+    #             raise ValueError("HTTPS_PORT not given (config in .env file)")
+    #         sslContext = tuple([os.path.join(os.environ["CERT_DIR"], i) for i in ['cert.pem', 'privkey.pem']])
+    #         print("starting server with ssl on port", os.environ["HTTPS_PORT"], "ssl context=", sslContext)
+    #         # 0.0.0.0 => allow all adresses to have access (important for docker-environment)
+    #         httpsServer = WSGIServer(('0.0.0.0', int(os.environ["HTTPS_PORT"])), app, certfile=sslContext[0], keyfile=sslContext[1])
+    #         httpsServer.serve_forever()
+    #         return True
+    #         # app.run(host="0.0.0.0", port=os.environ["HTTPS_PORT"], ssl_context=sslContext)
+    #     except Exception as e:
+    #         print("ERROR starting server on https:", e)
+    #         print("starting HTTP server instead...")
+    #         os.environ["HTTP_PORT"] = 80 if not "HTTP_PORT" in os.environ else os.environ["HTTP_PORT"]
+    #         return False
 
     # starts http server, returns false if failed
-    def startHttpServer():
-        try:
-            # 0.0.0.0 => allow all adresses to have access (important for docker-environment)
-            print("starting server without ssl on port", os.environ["HTTP_PORT"])
-            # app.run(host="0.0.0.0", port=os.environ["HTTP_PORT"])
-            httpServer = WSGIServer(('0.0.0.0', int(os.environ["HTTP_PORT"])), app)
-            httpServer.serve_forever()
-            return True
-        except Exception as e:
-            print("ERROR starting server on http:", e)
-            return False
+    # def startHttpServer():
+    #     try:
+    #         # 0.0.0.0 => allow all adresses to have access (important for docker-environment)
+    #         print("starting server without ssl on port", os.environ["HTTP_PORT"])
+    #         # app.run(host="0.0.0.0", port=os.environ["HTTP_PORT"])
+    #         httpServer = WSGIServer(('0.0.0.0', int(os.environ["HTTP_PORT"])), app)
+    #         httpServer.serve_forever()
+    #         return True
+    #     except Exception as e:
+    #         print("ERROR starting server on http:", e)
+    #         return False
 
-    app.debug = True
+    # app.debug = True
     
     # wait for database to be reachable before starting flask server
     print("waiting for server to start")
     while not serverUp():
-        print("server unreachable, waiting 5s")
+        print("databaseserver unreachable, waiting 5s")
         time.sleep(5)
 
     # add bot-user for AI
@@ -714,7 +720,7 @@ if __name__ == "__main__":
         db.session.add(User(os.environ["BOT_USERNAME"], os.environ["BOT_EMAIL"], secrets.token_hex(256//2), secrets.token_hex(256//2)))
         print("adding user")
         db.session.commit()
-        print(db.session.query(User).all())
+        # print(db.session.query(User).all())
         print("bot user added")
     except Exception as e:
         print(e)
@@ -734,9 +740,22 @@ if __name__ == "__main__":
     print("cronjob started")
 
     print("ssl enabled:", os.environ["ENABLE_SSL"])
-    if "ENABLE_SSL" in os.environ and os.environ["ENABLE_SSL"].upper() == "TRUE" and not startHttpsServer():
-        startHttpServer()
-    else:
-        startHttpServer()
-    print("no server started because no ports were indicated.")
+
+    # create a WSGI container from flask
+    container = tornado.wsgi.WSGIContainer(app)
+
+    # set up a http server and start it
+    http_server = tornado.httpserver.HTTPServer(container)
+    http_server.listen(os.environ["HTTP_PORT"])
+
+    if sslEnabled():
+        # set up a https server and start it if it should
+        https_server = tornado.httpserver.HTTPServer(container, ssl_options={
+            "certfile": f"{os.environ['CERT_DIR']}/cert.pem",
+            "keyfile": f"{os.environ['CERT_DIR']}/privkey.pem",
+        })
+        https_server.listen(os.environ["HTTPS_PORT"])
+    print("servers started")
+    # start an IOLoop
+    tornado.ioloop.IOLoop.current().start()
     
