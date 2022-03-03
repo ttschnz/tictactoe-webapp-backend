@@ -98,19 +98,20 @@ class User(db.Model, SerializerMixin):
 class Game(db.Model, SerializerMixin):
     __tablename__ = "games"
     gameId = db.Column(db.Integer(), primary_key=True, autoincrement="auto", name="gameid")
-    gameKey = db.Column(db.String(32))
-    attacker = db.Column(db.String(16), db.ForeignKey("users.username"))
-    defender = db.Column(db.String(16), db.ForeignKey("users.username"))
-    winner = db.Column(db.String(16), db.ForeignKey("users.username"))
+    gameKey = db.Column(db.String(32), nullable=True)
+    attacker = db.Column(db.String(16), db.ForeignKey("users.username"), nullable=False)
+    defender = db.Column(db.String(16), db.ForeignKey("users.username"), nullable=True)
+    winner = db.Column(db.String(16), db.ForeignKey("users.username"), nullable=True)
     isDraw = db.Column(db.Boolean(), default=False)
     gameFinished = db.Column(db.Boolean(), default=False, nullable=False)
     timestamp = db.Column(db.TIMESTAMP,server_default=db.text('CURRENT_TIMESTAMP'))
     ONGOING=0
     FINISHED=1
-    def __init__(self, player):
+    def __init__(self, player, playAgainstBot = True):
         # app.logger.info("game player username", player)
         self.attacker = player if player else None
-        self.defender = os.environ["BOT_USERNAME"]
+        
+        self.defender = os.environ["BOT_USERNAME"] if playAgainstBot else None
         # only set key if not with an account
         self.gameKey = hex(random.randrange(16**32))[2:] if not player else None
 
@@ -223,6 +224,19 @@ class Game(db.Model, SerializerMixin):
     @staticmethod
     def createWithUser(username):
         game = Game(username)
+        db.session.add(game)
+        db.session.commit()
+        db.session.refresh(game)
+        return game
+    
+    @staticmethod
+    def createFromRequest(request):
+        username = Session.authenticateRequest(request)
+        # return a game with playAgainstBot from the form if the user is signed in, else just a game against the bot
+        if username and "playAgainstBot" in request.form:
+            game = Game(username, str(request.form["playAgainstBot"]).upper() == "TRUE")
+        else:
+            game = Game(username)
         db.session.add(game)
         db.session.commit()
         db.session.refresh(game)
@@ -542,8 +556,7 @@ def checkCredentials():
 @app.route("/startNewGame", methods=["POST"])
 def startNewGame():
     try:
-        username = Session.authenticateRequest(request)
-        game = Game.createWithUser(username)
+        game = Game.createFromRequest(request)
         response = game.toResponse()
         return json.dumps(response)
     except Exception as e:
@@ -675,7 +688,7 @@ if __name__ == "__main__":
             return False
 
   
-    # app.debug = True
+    app.debug = True
     
     # wait for database to be reachable before starting flask server
     print("waiting for server to start")
@@ -683,15 +696,19 @@ if __name__ == "__main__":
         print("databaseserver unreachable, waiting 5s")
         time.sleep(5)
 
-    # add bot-user for AI
+    # add bot-user for RL-A
     try:
-        db.session.add(User(os.environ["BOT_USERNAME"], os.environ["BOT_EMAIL"], secrets.token_hex(256//2), secrets.token_hex(256//2)))
-        print("adding user")
-        db.session.commit()
+        app.logger.info("adding a bot user")
+        if User.find(os.environ["BOT_USERNAME"]).count() == 0:
+            db.session.add(User(os.environ["BOT_USERNAME"], os.environ["BOT_EMAIL"], secrets.token_hex(256//2), secrets.token_hex(256//2)))
+            db.session.commit()
+            app.logger.info("bot user added")
+        else:
+            app.logger.info("bot user already exists")
         # print(db.session.query(User).all())
-        print("bot user added")
     except Exception as e:
-        print(e)
+        app.logger.info("failed to add bot user")
+        pass
 
     try:
         print("adding sample data")
