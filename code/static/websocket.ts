@@ -62,7 +62,7 @@ export default class WebSocketConnection {
     }
 
     get socketProtocol(): String {
-        if (document.location.protocol == "https://") return "wss://";
+        if (document.location.protocol == "https:") return "wss://";
         else return "ws://";
     }
 
