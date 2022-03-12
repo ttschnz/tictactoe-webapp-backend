@@ -20,6 +20,9 @@ from datetime import datetime
 
 import tornado.httpserver
 import tornado.wsgi
+from tornado.websocket import WebSocketHandler
+from tornado.web import FallbackHandler, Application
+
 # add RL-A to importable 
 sys.path.insert(0, '/code/RL-A/')
 from TTTsolver import TicTacToeSolver, boardify
@@ -51,6 +54,22 @@ def cronjob(*args):
     return 
 def sslEnabled():
     return "ENABLE_SSL" in os.environ and os.environ["ENABLE_SSL"].upper() == "TRUE"
+
+# makes a move if it should
+def makeBotMove(gameId):
+    game = Game.find(gameId)
+    if game.getGameState() == Game.ONGOING and os.environ["BOT_USERNAME"] in [game.attacker, game.defender]:
+        # log=app.logger.info
+        solution = solver(game.getNumpyGameField().reshape((3,3)), "defender", False)
+        app.logger.info(f"found solution to board: {solution}")
+        move = Move.fromXY({"y":solution[0], "x":solution[1]},os.environ["BOT_USERNAME"], game.gameId)
+        # re-calculate game's state after RL-A's move
+        game.determineState()
+        gameSubscriptions.broadcastState(game.gameId)
+        return True
+    else:
+        return False
+
 # table to store users and their password to
 class User(db.Model, SerializerMixin):
     __tablename__ = "users"
@@ -99,12 +118,13 @@ class Game(db.Model, SerializerMixin):
     __tablename__ = "games"
     gameId = db.Column(db.Integer(), primary_key=True, autoincrement="auto", name="gameid")
     gameKey = db.Column(db.String(32), nullable=True)
-    attacker = db.Column(db.String(16), db.ForeignKey("users.username"), nullable=False)
+    attacker = db.Column(db.String(16), db.ForeignKey("users.username"), nullable=True)
     defender = db.Column(db.String(16), db.ForeignKey("users.username"), nullable=True)
     winner = db.Column(db.String(16), db.ForeignKey("users.username"), nullable=True)
     isDraw = db.Column(db.Boolean(), default=False)
     gameFinished = db.Column(db.Boolean(), default=False, nullable=False)
     timestamp = db.Column(db.TIMESTAMP,server_default=db.text('CURRENT_TIMESTAMP'))
+    started = db.Column(db.Boolean(), default=False, nullable=False)
     ONGOING=0
     FINISHED=1
     def __init__(self, player, playAgainstBot = True):
@@ -112,8 +132,9 @@ class Game(db.Model, SerializerMixin):
         self.attacker = player if player else None
         
         self.defender = os.environ["BOT_USERNAME"] if playAgainstBot else None
-        # only set key if not with an account
-        self.gameKey = hex(random.randrange(16**32))[2:] if not player else None
+        self.started = True if playAgainstBot else False
+        # only set key if not with an account or trying to play against a guest
+        self.gameKey = hex(random.randrange(16**32))[2:] if not player or not playAgainstBot else None
 
     # determines the game and sets gameFinished, and winner to the appropriate values 
     def determineState(self):
@@ -203,8 +224,35 @@ class Game(db.Model, SerializerMixin):
             response["data"]["gameKey"] = self.gameKey
         return response
     
+    def getData(self):
+        moves = self.getMoves()
+        data = {}
+        data["moves"] = [move.to_dict() for move in moves]
+        data["gameState"] = {"finished":self.gameFinished, "winner":self.winner, "isDraw": self.isDraw}
+        data["players"] = {"attacker": self.attacker, "defender": self.defender}
+        return data
+    
     def authenticate(self, username, gameKey):
-        return self.attacker == username or self.defender == username or self.gameKey == gamekey
+        return ((self.attacker == username or self.defender == username) and not username == None) or self.gameKey == gameKey
+
+    @staticmethod
+    def join(request):
+        username = Session.authenticateRequest(request)
+        game = Game.findByHex(request.form["gameId"])
+
+        if game.started:
+            raise ValueError("game allready started")
+        if game.attacker == username:
+            raise ValueError("can't play against yourself")
+
+        game.started = True
+        if username:
+            game.defender = username
+            game.gameKey = None
+
+        db.session.commit()
+        db.session.refresh(game)
+        return game
 
     @staticmethod
     def find(gameId):
@@ -342,6 +390,10 @@ class Session(db.Model, SerializerMixin):
     @staticmethod
     def authenticateRequest(request):
         token = re.match(r"(Bearer)\ ([0-f]*)", request.headers["Authorisation"]).groups()[-1] if "Authorisation" in request.headers else None
+        return Session.authenticateToken(token)
+
+    @staticmethod
+    def authenticateToken(token):
         app.logger.info(f"authenticating token {token}")
         session = Session.find(token).one() if token else None
         return session.username if session else None
@@ -404,6 +456,140 @@ class Competition(db.Model, SerializerMixin):
         # except Exception as e:
             # app.logger.error(e)
 
+class GameSubscriptionList:
+    subscriptions = {}
+    def __init__(self):
+        pass
+
+    def add(self, gameId, socket): 
+        try:
+            if not gameId in self.subscriptions:
+                self.subscriptions[int("0x" + gameId, 16)] = []
+            self.subscriptions[gameId].append(socket)
+            app.logger.info(f"added socket to list of game #{gameId}")
+            return True
+        except Exception as e:
+            return False
+
+    def remove(self, socket, gameId=False):
+        try:
+            if gameId:
+                while socket in self.subscriptions[gameId]:
+                    self.subscriptions[gameId].remove(socket)
+                app.logger.info(f"removed socket from list of game #{gameId}")
+            else:
+                for gameId in self.subscriptions.keys():
+                    self.remove(socket, gameId)
+        except Exception as e:
+            return False
+        return True
+
+    def broadcast(self, gameId, data):
+        for socket in self.subscriptions[Game.gameId]:
+            try:
+                socket.send("broadcast", data)
+            except:
+                # socket is probably closed, just ignore
+                pass
+        app.logger.info(f"broadcasted data to game #{str(gameId)}")
+        return
+
+    def broadcastState(self, gameId):
+        try:
+            data = Game.find(gameId).getData()
+            app.logger.info(data)
+            self.broadcast(gameId, data)
+        except Exception as e:
+            app.logger.error(e)
+            app.logger.error(f"failed to broadcast game {gameId}")
+        return
+
+gameSubscriptions = GameSubscriptionList()
+
+class WebSocket(WebSocketHandler):
+    def open(self):
+        print("Socket opened.")
+
+    def on_message(self, data):
+        try:
+            message = data if type(data) == "dict" else json.loads(data)
+            action = message["action"] if "action" in message else None
+            arguments = message["args"] if "args" in message else {}
+            msgId = message["msgId"] if "msgId" in message else None
+        except:
+            return self.error(None,["unparseable data",data], msgId)
+
+        if action == "ping":
+            return self.send(action, "pong", msgId)
+
+        if action == "subscribeGame":
+            if "gameId" not in arguments:
+                return self.error(action, "parameter not given: gameId", msgId)
+
+            if not gameSubscriptions.add(arguments["gameId"], self):
+                return self.error(action, "failed to subscribe to game", msgId)
+
+            return self.send(action, {"gameId":arguments["gameId"]}, msgId)
+        
+        if action == "unsubscribeGame":
+            if "gameId" not in arguments:
+                return self.error(action, "parameter not given: gameId", msgId)
+
+            if not gameSubscriptions.remove(self, arguments["gameId"]):
+                return self.error(action, "failed to unsubscribe from game", msgId)
+
+            return self.send(action, {"gameId":arguments["gameId"]}, msgId)
+
+        if action == "viewGame":
+            if "gameId" not in arguments:
+                return self.error(action, "parameter not given: gameId", msgId)
+            game = Game.findByHex(arguments["gameId"])
+            data = game.getData()
+            return self.send(action, data, msgId)
+        
+        if action == "makeMove":
+            if "gameId" not in arguments:
+                return self.error(action, "parameter not given: gameId", msgId)
+
+            game = Game.findByHex(arguments["gameId"])
+            username = Session.authenticateToken(arguments["token"]) if "token" in arguments else None
+            gameKey = arguments["gameKey"] if "gameKey" in arguments else None
+
+            if "movePosition" not in arguments:
+                return self.error(action, "parameter not given: movePosition", msgId)
+            if not game.authenticate(username, gameKey):
+                return self.error(action, "authentication failed", msgId)
+            if game.gameFinished:
+                return self.error(action, "Game finished, no moves allowed", msgId)
+            try:
+                db.session.add(Move(game.gameId, int(arguments["movePosition"]), username))
+                db.session.commit()
+            except Exception as e:
+                app.logger.error(e)
+                return self.error(action, "failed to make move", msgId)
+
+            self.send(action, {"success": True}, msgId)
+            gameSubscriptions.broadcastState(game.gameId)
+            # re-calculate games state after commit of move
+            game.determineState()
+            makeBotMove(game.gameId)
+            return 
+        if action == "help":
+            self.send(action, {"makeMove":{"args":["gameId", "movePosition", "?token", "?gameKey"], "desc":"makes a move on a certain game at the given position"}, "viewGame":{"args":["gameId"], "desc":"returns all the moves made on a certain game and its state"}, "ping":{"args":[], "desc":"returns \"pong\", use this to test the connection and its speed"}}, msgId)
+            return 
+        return self.error(action, "unknown action. send {\"action\"=\"help\"} to recieve docs", msgId)
+
+    def on_close(self):
+        gameSubscriptions.remove(self)
+        print("Socket closed.")
+
+    def error(self, action, data, msgId):
+        self.send(action, data, msgId, True)
+
+    def send(self, action, data, msgId, error=False):
+        message = {"action":action, "success": False, "error":data, "msgId":msgId} if error else {"action":action, "success":True, "data":data, "msgId":msgId}
+        self.write_message(json.dumps(message))
+        
 
 @app.route('/manifest.json')
 @app.route('/manifest.manifest')
@@ -556,7 +742,19 @@ def checkCredentials():
 @app.route("/startNewGame", methods=["POST"])
 def startNewGame():
     try:
+        app.logger.error("starting new game")
         game = Game.createFromRequest(request)
+        response = game.toResponse()
+        return json.dumps(response)
+    except Exception as e:
+        app.logger.error(e)
+        response={"success": False}
+        return json.dumps(response)
+
+@app.route("/joinGame", methods=["POST"])
+def joinGame():
+    try:
+        game = Game.join(request)
         response = game.toResponse()
         return json.dumps(response)
     except Exception as e:
@@ -581,15 +779,10 @@ def makeMove():
         # re-calculate games state after commit of move
         game.determineState()
 
+        gameSubscriptions.broadcastState(game.gameId)
+
         # if game is not finished and bot is attacker or defender, let RL-A decide on the next move
-        if game.getGameState() == Game.ONGOING and os.environ["BOT_USERNAME"] in [game.attacker, game.defender]:
-            solution = solver(game.getNumpyGameField().reshape((3,3)), "defender", app.logger.info)
-            app.logger.info(f"found solution to board: {solution}")
-            move = Move.fromXY({"y":solution[0], "x":solution[1]},os.environ["BOT_USERNAME"], game.gameId)
-            # re-calculate game's state after RL-A's move
-            game.determineState()
-        else:
-            app.logger.info("game finished, no moves made by RL-A")
+        makeBotMove(game.gameId)
         response = {"success": True}
 
     except Exception as e:
@@ -602,17 +795,12 @@ def makeMove():
 def sendGameInfo():
     response = {"success":True}
     try:
-        game = Game.findByHex(request.form["gameId"])
-        moves = game.getMoves()
-        response["data"]={"moves": [move.to_dict() for move in moves], "gameState":{"finished":game.gameFinished, "winner":game.winner, "isDraw":game.isDraw}, "players":{"attacker": game.attacker, "defender": game.defender}}
-        
-        # Move.findByGame()
-        # gameId = int("0x" + request.form["gameId"], 16)
-        # response["data"] = [{"gameId":i.gameId, "moveIndex":i.moveIndex, "movePosition":i.movePosition, "player": i.player} for i in db.session.query(Move).filter(Move.gameId == gameId).all()]
+        response["data"] = Game.findByHex(request.form["gameId"]).getData()
     except Exception as e:
         app.logger.error(e)
         response["success"] = False
     return json.dumps(response)
+
 @app.route("/version", methods=["GET", "POST"])
 def getVersion():
     response = {"success":True}
@@ -727,7 +915,11 @@ if __name__ == "__main__":
     print("ssl enabled:", os.environ["ENABLE_SSL"])
 
     # create a WSGI container from flask
-    container = tornado.wsgi.WSGIContainer(app)
+    flaskApp = tornado.wsgi.WSGIContainer(app)
+    container = Application([
+        (r'/ws', WebSocket),
+        (r'.*', FallbackHandler, dict(fallback=flaskApp))
+    ])
 
     # set up a http server and start it
     http_server = tornado.httpserver.HTTPServer(container)

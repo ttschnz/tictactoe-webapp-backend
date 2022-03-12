@@ -9,6 +9,7 @@ import {
     Tile,
     Warning
 } from "./elements.js";
+// TODO: comments
 // type for State.stateId
 export type StateId = string | number;
 
@@ -26,7 +27,7 @@ export default class State {
     app: WebApp;
     children: BasicElement[] = [];
     regExResult = [];
-    urlGetter: Function;
+    urlGetter: (this:State)=>string;
     _url: string;
     /**
      * 

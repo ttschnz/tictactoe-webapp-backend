@@ -13,6 +13,7 @@ import {
     UserBrowserTable
 } from "./game.js";
 export type SortingOptions = "ASC" | "DESC" | "NONE";
+// TODO: comments
 // basic element on which all other elements should be extended 
 export class BasicElement {
     element: HTMLElement;

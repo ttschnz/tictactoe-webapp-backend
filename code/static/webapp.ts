@@ -11,7 +11,8 @@ import {
     errorState,
     home
 } from "./states.js";
-
+import WebSocketConnection from "./websocket.js";
+// TODO: comments
 export type JSONResponse = {
     success: boolean,
     data ? : any,
@@ -30,6 +31,7 @@ export default class WebApp {
         [key: StateId]: State
     } = {};
     versionHash: string;
+    websocket: WebSocketConnection;
     /**
      * Constructs a WebApp and renders in document.body if not told otherwise via parameter
      * @param renderTarget the target Element where the WebApp should put itself
@@ -48,7 +50,9 @@ export default class WebApp {
         })
         window.dispatchEvent(new UIEvent("resize"));
         // check if the credentials are valid
-        this.checkCredentials()
+        this.checkCredentials();
+
+        this.websocket = new WebSocketConnection(this);
     }
     /**
      * figures out what state is supposed to be loaded with a given url
@@ -75,6 +79,7 @@ export default class WebApp {
     isSecureContext(): boolean {
         return window.isSecureContext;
     }
+    
     api(target: string, data = {}, sendToken = false): Promise < JSONResponse > {
         return new Promise((resolve, _reject) => {
             fetch(target, {
@@ -109,6 +114,10 @@ export default class WebApp {
         });
     }
 
+    get isSecure():Boolean{
+        return document.location.protocol == "https:"
+    }
+
     /**
      * adds a state tho the saved list of states, to be later remembered by its id
      * @param state state to be added to list
@@ -124,7 +133,7 @@ export default class WebApp {
     public setState(state: State, url ? : string) {
         if (url) state.urlGetter = () => url;
         else state.urlGetter = () => state._url;
-        if (state.regEx) state.regExResult = url.match(state.regEx);
+        if (state.regEx) state.regExResult = state.urlGetter().match(state.regEx);
         // set state
         this.state = state;
         // set the title to the title of the state
@@ -228,6 +237,7 @@ export default class WebApp {
      * @param content stuff to be logged
      */
     log(...content: any[]): void {
+        console.info(`${(new Error().stack.split("at ")[2]).trim()}`);
         console.log(...content);
     }
     showError(errorText: string, options ? : ErrorOptions) {

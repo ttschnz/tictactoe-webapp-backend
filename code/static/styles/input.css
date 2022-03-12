@@ -48,7 +48,6 @@ input~label {
     transition: transform .33s;
     transform: translate(0px, calc(-1em - 10px + 4px)) scale(.7);
     transform-origin: left;
-    z-index: 0;
     user-select: none;
     background: white;
     z-index: 3;
@@ -58,6 +57,7 @@ input~label {
 
 input:placeholder-shown:not(:focus)~label{
     transform: translateY(-4px) scale(.8);
+    z-index: 0;
 }
 
 .button.material-icons {

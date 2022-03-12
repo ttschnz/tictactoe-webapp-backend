@@ -20,14 +20,16 @@ import {
     Table,
     TableRow,
     SortableTableHeadingRow,
-    SortableTableHeading
+    SortableTableHeading,
+    Input
 } from "./elements.js";
 import {
     game,
     home,
-    signup
+    signup,
+    browseGames
 } from "./states.js";
-
+// TODO: comments
 export type PositionIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 export type Coord = 0 | 1 | 2;
 export interface Coords {
@@ -44,7 +46,7 @@ export interface PostGameInfo {
     attacker: string
     defender: string
     gameField: Array < -1 | 0 | 1 >
-        gameId: number
+    gameId: number
     isDraw: boolean
     isFinished: boolean
     winner: string | null | false
@@ -67,14 +69,15 @@ export interface GameMetaData {
             isDraw: boolean
         }
 };
+// TODO: clean up code and try simplify it
 
 export class TicTacToeGame {
     _gameMetaData: GameMetaData;
-    attacker = {
+    attacker:{icon:string, number:1} = {
         icon: "x",
         number: 1
     };
-    defender = {
+    defender:{icon:string, number:-1} = {
         icon: "o",
         number: -1
     };
@@ -109,7 +112,7 @@ export class TicTacToeGame {
         this.app.log(`gameData setter called`);
         if (this.renderTarget) this.renderTarget.activate(this);
         if (this.renderTarget) this.renderTarget.renderData(data);
-        this.updateInfo();
+        // this.updateInfo();
         this._gameData = data;
     }
 
@@ -172,6 +175,7 @@ export class TicTacToeGame {
         // update the gameState to "your turn" or "opponents turn" depending on who did the last move. "finished: @username" if the game is done, "finished: Guest" if it is a guest
         if (this.gameMetaData && this.gameMetaData.gameState.finished) {
             // show who won
+            console.trace("showing who won");
             infoSpan.update("finished: ",
                 this.gameMetaData.gameState.isDraw ? "nobody" : this.gameMetaData.gameState.winner == null ? "Guest" : new UserSpan(this.gameMetaData.gameState.winner),
                 " won");
@@ -180,9 +184,9 @@ export class TicTacToeGame {
             // show confetti if you are a guest and the winner is a guest (requires a rule that guests can't play against each other)
             else if (!this.gameMetaData.gameState.isDraw && !this.app.credentials && this.gameMetaData.gameState.winner == null) this.showConfetti();
             // show popup to restart Game if the game has not just been loaded and the user has access to the game
-            if (!firstUpdate && this.authenticator && this.app.credentials) this.app.getState().add(new Popup(new Span("Game finished. Do you want to play again?"), new PrimaryButton("New game", game), new Button("Home", home)));
+            if (!firstUpdate && this.authenticator && this.app.credentials) this.app.getState().add(new Popup(new Span("Game finished. Do you want to play again?"), new PrimaryButton("New game", "/games/new"), new Button("Home", home)));
             // show popup to restart Game if the game has not just been loaded and the user has access to the game and is a guest
-            else if (!firstUpdate && this.authenticator) this.app.getState().add(new Popup(new Span("Game finished "), new PrimaryButton("Play again", game), new Button("Sign up and win", signup)));
+            else if (!firstUpdate && this.authenticator) this.app.getState().add(new Popup(new Span("Game finished "), new PrimaryButton("Play again", "/games/new"), new Button("Sign up and win", signup)));
         } else if (this.authenticator) infoSpan.update(this.isMyTurn() ? "your turn" : "opponents turn")
         else(this.gameStateContainer.findChildren(Span, true)[0] as Span).update("observer");
         this.infoTarget.add(this.gameNumberContainer);
@@ -205,7 +209,8 @@ export class TicTacToeGame {
     }: {
         x: Coord;y: Coord;
     }): Promise < boolean > {
-        if (this.validateMove([x, y])) {
+        let role = this.getRole()
+        if (this.validateMove([x, y]) && role) {
             this.app.log(`move at ${x}, ${y}`);
             this.moves.push({
                 gameId: this.gameId,
@@ -215,7 +220,7 @@ export class TicTacToeGame {
                 movePosition: TicTacToeGame.coordsToMovePosition(x, y),
                 player: "guest"
             });
-            this.gameData[y][x] = this.attacker.number;
+            this.gameData[y][x] = role;
             this.renderTarget.renderData(this.gameData);
             this.updateInfo();
             await this.commitMove([x, y] as Coords);
@@ -257,12 +262,24 @@ export class TicTacToeGame {
             return 0
         }
     }
+
     isMyTurn(): boolean {
-        return (((this.getLastMove() ?? {
+        let role = this.getRole()
+        // if the player is a part of the game, get the last moves move index (-1 if there is no last move), add one and see if it is eaven. if it is eaven (%2 == 0) the role should be attacker (=1) => (0 = Math.max(1*-1, 0)), if odd (%2 == 1) defender (=-1) => (1 = Math.max(-1*-1, 0))
+        if (role) return (((this.getLastMove() ?? {
             moveIndex: -1
-        }).moveIndex) + 1) % 2 == 0;
+        }).moveIndex) + 1) % 2 == Math.max(role*-1, 0);
+        else return false
     }
 
+    getRole():-1|1|false{
+        // if there is no authenticator set, the player is an observer (false)
+        if(!this.authenticator) return false
+        // if the username is the attacker, the player is the attacker
+        if(this.gameMetaData.players.attacker == (this.app.credentials ? this.app.credentials.username : null)) return this.attacker.number;
+        // if the username is the defender, the player is the defedner
+        if(this.gameMetaData.players.defender == (this.app.credentials ? this.app.credentials.username : null)) return this.defender.number;
+    }
     /**
      * checks if move is allowed (valid)
      * @param coords where the move should be placed
@@ -283,10 +300,8 @@ export class TicTacToeGame {
         // is the field empty?
         let fieldIsEmpty = (this.gameData[coords[1]][coords[0]] == this.emptyField.number)
         valid = valid && fieldIsEmpty;
-        // is the last player who made a move the enemy (currently the defender)?
-        let lastPlayerWasEnemy = this.evaluatePlayer(lastMove.player) == this.defender.number;
-        valid = valid && lastPlayerWasEnemy;
-        this.app.log(`validating move on coords:${coords}, fieldIsEmpty=${fieldIsEmpty}, lastPlayerWasEnemy=${lastPlayerWasEnemy}`);
+        valid = valid && this.isMyTurn();
+        this.app.log(`validating move on coords:${coords}, fieldIsEmpty=${fieldIsEmpty}, isMyTurn=${this.isMyTurn()}`);
         return valid;
     }
 
@@ -298,8 +313,8 @@ export class TicTacToeGame {
      * @returns Promisw which will be resolved to a TicTacToeGame instance
      */
     public static async createNew(app: WebApp, renderTarget: TicTacToeGameContainer, infoTarget: Container, gamePlayerInfo: GamePlayerInfo, ): Promise < TicTacToeGame > {
-        let response = await app.api("/startNewGame", {}, true);
-        if (response.success) return new TicTacToeGame(response.data.gameId, app, renderTarget, infoTarget, gamePlayerInfo, app.credentials ? Authenticator.fromUsername(app.credentials) : Authenticator.fromGameKey(response.data.gameKey));
+        let response = await app.websocket.send("startNewGame", {}, true);
+        if (response.success) return new TicTacToeGame(response.data.gameId, app, renderTarget, infoTarget, gamePlayerInfo, app.credentials ? Authenticator.fromUsername() : Authenticator.fromGameKey(response.data.gameKey));
         else app.showError("Game data could not be refreshed", {
             retry: TicTacToeGame.createNew.bind(undefined, app)
         });
@@ -333,8 +348,9 @@ export class TicTacToeGame {
      * @returns -1 | 0 | 1
      */
     evaluatePlayer(player: string): number {
-        if (["bot"].indexOf(player) < 0) return this.attacker.number;
-        else return this.defender.number;
+        if (this.gameMetaData.players.attacker == player) return this.attacker.number;
+        if (this.gameMetaData.players.defender == player) return this.defender.number;
+        else return 0;
     }
 
     /**
@@ -360,11 +376,11 @@ export class TicTacToeGame {
             gameId: this.gameId
         });
         if (response.success) {
-            this.setMoves(response.data.moves as Move[]);
             this.gameMetaData = ({
                 players: response.data.players,
                 gameState: response.data.gameState
             }) as GameMetaData;
+            this.setMoves(response.data.moves as Move[]);
             this.updateInfo(firstUpdate);
         } else this.app.showError("Game data could not be refreshed", {
             retry: this.refreshState
@@ -423,9 +439,9 @@ export class TicTacToeGameTile extends BasicElement {
     }
 
     renderData(data: Number[][]): void {
-        let occupyer = this.game.iconMap[String(data[this.y][this.x])];
-        if (data[this.y] && data[this.x]) this.element.dataset.occupiedBy = occupyer;
-        this.occupied = occupyer != this.game.emptyField.icon;
+        let occupier = this.game.iconMap[String(data[this.y][this.x])];
+        if (data[this.y] && data[this.x]) this.element.dataset.occupiedBy = occupier;
+        this.occupied = occupier != this.game.emptyField.icon;
     }
 }
 export class TicTacToeMiniature extends Container {
@@ -524,7 +540,7 @@ export class Authenticator {
         return auth;
     }
 
-    public static fromUsername(_credentials): Authenticator {
+    public static fromUsername(): Authenticator {
         return new Authenticator((target: string, data ? : any) => {
             console.log(`authenticating ${target} from Username`);
             if (target == "/makeMove") return [target, {
@@ -793,5 +809,56 @@ export class UserBrowserTable extends Table {
             this.add(new TableRow(new UserSpan(user.username), String(user.winCount), String(user.defeatCount), String(user.drawCount)));
         }
         this.data = data;
+    }
+}
+
+export class Game extends FlexContainerColumn {
+    gameContainer = new TicTacToeGameContainer();
+    gameInfoContainer = new Container();
+    gamePlayerInfo = GamePlayerInfo.procrastinate();
+    game: TicTacToeGame;
+    auth: Authenticator;
+    gameId = this.app.getState().regExResult[1];
+    constructor() {
+        super();
+        this.add(
+            this.gameInfoContainer,
+            new Tile(
+                this.gameContainer,
+                this.gamePlayerInfo
+            )
+        );
+        this.addClass("centered");
+        this.startGame();
+    }
+
+    async startGame(){
+        //  FIXME: make joining work
+        if(document.location.hash == "#join"){
+            let response:JSONResponse = await this.app.api("/joinGame", {gameId:this.gameId}, true);
+            if(response.success){
+                if(this.app.credentials) this.auth = Authenticator.fromUsername();
+                else this.auth = Authenticator.fromGameKey(response.data.gameKey);
+            }else{
+                this.gameContainer.addClass("readonly");
+            }
+        }else if (this.gameId == "new"){
+            console.log("creating new game");
+            let response =await this.app.api("/startNewGame", {}, true);
+            if(response.success){
+                if(this.app.credentials) this.auth = Authenticator.fromUsername();
+                else this.auth = Authenticator.fromGameKey(response.data.gameKey);
+                this.gameId = response.data.gameId;
+            }else this.app.showError("Game could not be created, please try again later", {retry: this.startGame.bind(this)});
+        }else if (this.gameId == ""){
+            return this.app.setState(browseGames);
+        }else if(this.app.credentials){
+            this.auth = Authenticator.fromUsername();
+        }else{
+            this.gameContainer.addClass("readonly");
+        }
+        this.app.log("auth for game view", this.auth);
+        this.game = new TicTacToeGame(this.gameId, this.app, this.gameContainer, this.gameInfoContainer, this.gamePlayerInfo, this.auth);
+        this.gamePlayerInfo.resolve(this.game);
     }
 }

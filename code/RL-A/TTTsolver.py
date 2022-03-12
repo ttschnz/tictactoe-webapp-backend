@@ -30,23 +30,28 @@ class TicTacToeSolver:
 
         scores = self.defenderScores if role == "defender" else self.attackerScores
         currentPlayer = 1 if role == "attacker" else -1
-        log(f"playing as {role}={currentPlayer} on board {board}")
+        if log:
+            log(f"playing as {role}={currentPlayer} on board {board}")
         action = [-1,-1]
-        log(self.getBoardIdentifier(board))
+        if log:
+            log(self.getBoardIdentifier(board))
         for move in self.getValidMoves(board):
             possibleBoard = board.copy()
             possibleBoard[move[0]][move[1]] = currentPlayer
             possibleBoardId = self.getBoardIdentifier(possibleBoard)
             score = float("-inf") if scores.get(possibleBoardId) is None else scores.get(possibleBoardId)
-            log(possibleBoardId, score)
+            if log:
+                log(possibleBoardId, score)
             if score > highestScore:
                 highestScore = score
                 action = move
         if -1 not in action:
-            log("weighting successful")
+            if log:
+                log("weighting successful")
             return action 
         else:
-            log("failed to solve board: no action is weighted - please check your policy")
+            if log:
+                log("failed to solve board: no action is weighted - please check your policy")
             return self.getValidMoves(board)[0]
 
     def getBoardIdentifier(self, board):

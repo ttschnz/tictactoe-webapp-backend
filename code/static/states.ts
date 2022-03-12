@@ -27,7 +27,8 @@ import {
     GameBrowser,
     Authenticator,
     PostGameInfo,
-    UserBrowserTable
+    UserBrowserTable,
+    Game
 } from "./game.js";
 import {
     Credentials,
@@ -38,14 +39,14 @@ import {
 export const home = new State(0, "Home", "/");
 
 // id 1 -- gaming
-export const game = new State(1, "Game", "/games/new");
-export const gameInfo = new State(1.2, "Game", "/games/", RegExp("^\/games\/(.*)$"));
+// export const game = new State(1, "Game", "/games/new");
+export const game = new State(1.2, "Game", "/games/", new RegExp("^\/games\/([^#\n]*)(#.*)?$"));
 export const browseGames = new State(1.3, "Browse Games", "/games");
-// export const joinGame = new State(1.4, "Join Game", "/join");
+export const joinGame = new State(1.4, "Join Game", "/join");
 
 // id 2 -- user management
 export const browseUsers = new State(2.1, "Browse Users", "/users");
-export const userInfo = new State(2.3, "User", "/users/", RegExp("^\/users\/(.*)$"));
+export const userInfo = new State(2.3, "User", "/users/", new RegExp("^\/users\/(.*)$"));
 
 // id 3 -- admin stuff
 
@@ -65,6 +66,7 @@ export const errorState = new State(404, "Error", "");
 // forge is loaded in the .html file, this declaration is just to prevent tsc from throwing an error
 const forge = window["forge"];
 
+// TODO: comments
 home.renderFunction = (addElement, app) => {
     addElement(new Header());
     if (app.credentials) addElement(new Main(
@@ -76,8 +78,16 @@ home.renderFunction = (addElement, app) => {
             new FlexContainerColumn(
                 new HorizontalLine("Your Account"),
                 new FlexContainerColumn(
-                    new PrimaryButton(`New game`, game),
-                    // new Button(`Join game`, joinGame),
+                    new PrimaryButton("New game", "/games/new"),
+                    new Button("Join Game", ()=>{
+                        let gameIdInput = new Input("gameId", "Game Id");
+                        addElement(new Popup(
+                            gameIdInput,
+                            new Button("Join", ()=>{
+                                app.setState(game, `/games/${gameIdInput.value}#join`)
+                            })
+                        ));
+                    }),
                     new Button(`View stats`, () => {
                         if (app.credentials) app.loadStateByURL(`/users/@${app.credentials.username}`);
                         else app.loadStateByURL(`/users/@bot`);
@@ -101,7 +111,16 @@ home.renderFunction = (addElement, app) => {
             ).addClass("centered"),
             new FlexContainerColumn(
                 new FlexContainerColumn(
-                    new PrimaryButton("Play as guest", game),
+                    new PrimaryButton("Play as guest", "/games/new"),
+                    new Button("Join Game", ()=>{
+                        let gameIdInput = new Input("gameId", "Game Id");
+                        addElement(new Popup(
+                            gameIdInput,
+                            new Button("Join", ()=>{
+                                app.setState(game, `/games/${gameIdInput.value}#join`)
+                            })
+                        ));
+                    }),
                     new Button("Browse games", browseGames),
                     new Button("Browse users", browseUsers),
                     new Button("View competition", viewCompetition)
@@ -255,54 +274,36 @@ signup.renderFunction = (addElement, app) => {
     addElement(new Footer());
 }
 
+// game.renderFunction = async (addElement, app) => {
+//     // create game-objects
+//     let gameContainer = new TicTacToeGameContainer();
+//     let gameInfoContainer = new Container();
+//     let gamePlayerInfo = GamePlayerInfo.procrastinate();
+
+//     addElement(new Header());
+//     addElement(new Main(
+//         gameInfoContainer,
+//         new Tile(
+//             gameContainer,
+//             gamePlayerInfo
+//         )
+//     ).addHomeLink());
+//     addElement(new Footer());
+
+//     // apply game-objects
+//     let game = await TicTacToeGame.createNew(app, gameContainer, gameInfoContainer, gamePlayerInfo);
+//     gamePlayerInfo.resolve(game);
+// }
+
 game.renderFunction = async (addElement, app) => {
-    // create game-objects
-    let gameContainer = new TicTacToeGameContainer();
-    let gameInfoContainer = new Container();
-    let gamePlayerInfo = GamePlayerInfo.procrastinate();
-
     addElement(new Header());
     addElement(new Main(
-        gameInfoContainer,
-        new Tile(
-            gameContainer,
-            gamePlayerInfo
-        )
-    ).addHomeLink());
-    addElement(new Footer());
-
-    // apply game-objects
-    let game = await TicTacToeGame.createNew(app, gameContainer, gameInfoContainer, gamePlayerInfo);
-    gamePlayerInfo.resolve(game);
-}
-
-gameInfo.renderFunction = async (addElement, app) => {
-    let gameContainer = new TicTacToeGameContainer() as TicTacToeGameContainer;
-    if (!app.credentials) gameContainer.addClass("readonly");
-    let gameInfoContainer = new Container();
-    let gamePlayerInfo = GamePlayerInfo.procrastinate();
-
-    let gameId = app.getState().regExResult[1];
-    app.log(`gameId: ${gameId}`);
-    let game
-    if (app.credentials) game = new TicTacToeGame(gameId, app, gameContainer, gameInfoContainer, gamePlayerInfo, Authenticator.fromUsername(app.credentials));
-    else game = new TicTacToeGame(gameId, app, gameContainer, gameInfoContainer, gamePlayerInfo);
-    gamePlayerInfo.resolve(game)
-
-    addElement(new Header());
-    addElement(new Main(
-        gameInfoContainer,
-        new Tile(
-            gameContainer,
-            gamePlayerInfo
-        )
+        new Game()
     ).addHomeLink());
     addElement(new Footer());
 }
 
-gameInfo.urlGetter = ((_this: State) => {
-    return _this.regExResult[1];
-}).bind(gameInfo, gameInfo);
+game.urlGetter = () => game.regExResult[1];
 
 errorState.renderFunction = async (addElement, app) => {
     addElement(new Header());
@@ -422,9 +423,7 @@ userInfo.renderFunction = async (addElement, app) => {
 
 }
 
-userInfo.urlGetter = (_args) => {
-    return userInfo.regExResult[1];
-}
+userInfo.urlGetter = () => userInfo.regExResult[1];
 
 
 browseGames.renderFunction = (addElement, app) => {
@@ -459,6 +458,21 @@ browseUsers.renderFunction = (addElement, app) => {
     addElement(new Main(
         new Tile(
             new UserBrowserTable()
+        )
+    ).addHomeLink());
+    addElement(new Footer());
+}
+
+joinGame.renderFunction = (addElement, app)=>{
+    let gameIdInput = new Input("gameId", "Game code", "string", true);
+    addElement(new Header());
+    addElement(new Main(
+        new Tile(
+            gameIdInput,
+            new PrimaryButton("Join game", ()=>{
+                let gameId = gameIdInput.value;
+                app.setState(game, `/games/${gameId}#join`);
+            })
         )
     ).addHomeLink());
     addElement(new Footer());
