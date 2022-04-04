@@ -224,14 +224,6 @@ class Game(db.Model, SerializerMixin):
             response["data"]["gameKey"] = self.gameKey
         return response
     
-    def getData(self):
-        moves = self.getMoves()
-        data = {}
-        data["moves"] = [move.to_dict() for move in moves]
-        data["gameState"] = {"finished":self.gameFinished, "winner":self.winner, "isDraw": self.isDraw}
-        data["players"] = {"attacker": self.attacker, "defender": self.defender}
-        return data
-    
     def authenticate(self, username, gameKey):
         return ((self.attacker == username or self.defender == username) and not username == None) or self.gameKey == gameKey
 
@@ -336,6 +328,9 @@ class Move(db.Model, SerializerMixin):
         return index
     
     def checkValidity(self):
+        # check if the move is on the board
+        if not (self.movePosition < 9 and self.movePosition >= 0):
+            raise ValueError("move is outside of the field")
         # check if there is no other entry with same pos and gameid
         sameMoves = db.session.query(Move).filter(Move.gameId == self.gameId).filter(Move.movePosition == self.movePosition).all()
         if not len(sameMoves) == 0:
@@ -461,14 +456,15 @@ class GameSubscriptionList:
     def __init__(self):
         pass
 
-    def add(self, gameId, socket): 
+    def add(self, gameId, msgId, socket): 
         try:
             if not gameId in self.subscriptions:
-                self.subscriptions[int("0x" + gameId, 16)] = []
-            self.subscriptions[gameId].append(socket)
+                self.subscriptions[gameId] = []
+            self.subscriptions[gameId].append((socket, msgId))
             app.logger.info(f"added socket to list of game #{gameId}")
             return True
         except Exception as e:
+            app.logger.info(e)
             return False
 
     def remove(self, socket, gameId=False):
@@ -485,9 +481,10 @@ class GameSubscriptionList:
         return True
 
     def broadcast(self, gameId, data):
-        for socket in self.subscriptions[Game.gameId]:
+        app.logger.info(f"broadcasting data {data} to game #{gameId}", self.subscriptions[gameId])
+        for (socket, msgId) in self.subscriptions[gameId]:
             try:
-                socket.send("broadcast", data)
+                socket.send("broadcast", data, msgId)
             except:
                 # socket is probably closed, just ignore
                 pass
@@ -496,7 +493,7 @@ class GameSubscriptionList:
 
     def broadcastState(self, gameId):
         try:
-            data = Game.find(gameId).getData()
+            data = Game.find(gameId).getGameInfo()
             app.logger.info(data)
             self.broadcast(gameId, data)
         except Exception as e:
@@ -507,6 +504,9 @@ class GameSubscriptionList:
 gameSubscriptions = GameSubscriptionList()
 
 class WebSocket(WebSocketHandler):
+    # allow all origins
+    def check_origin(self, origin):
+        return True
     def open(self):
         print("Socket opened.")
 
@@ -524,49 +524,48 @@ class WebSocket(WebSocketHandler):
 
         if action == "subscribeGame":
             if "gameId" not in arguments:
-                return self.error(action, "parameter not given: gameId", msgId)
+                return self.error(action, "parameter not given: gameId", msgId, arguments)
 
-            if not gameSubscriptions.add(arguments["gameId"], self):
-                return self.error(action, "failed to subscribe to game", msgId)
+            if not gameSubscriptions.add(arguments["gameId"], msgId, self):
+                return self.error(action, "failed to subscribe to game", msgId, arguments)
 
             return self.send(action, {"gameId":arguments["gameId"]}, msgId)
         
         if action == "unsubscribeGame":
             if "gameId" not in arguments:
-                return self.error(action, "parameter not given: gameId", msgId)
+                return self.error(action, "parameter not given: gameId", msgId, arguments)
 
             if not gameSubscriptions.remove(self, arguments["gameId"]):
-                return self.error(action, "failed to unsubscribe from game", msgId)
+                return self.error(action, "failed to unsubscribe from game", msgId, arguments)
 
             return self.send(action, {"gameId":arguments["gameId"]}, msgId)
 
         if action == "viewGame":
             if "gameId" not in arguments:
-                return self.error(action, "parameter not given: gameId", msgId)
-            game = Game.findByHex(arguments["gameId"])
-            data = game.getData()
+                return self.error(action, "parameter not given: gameId", msgId, arguments)
+            game = Game.find(arguments["gameId"])
+            data = game.getGameInfo()
             return self.send(action, data, msgId)
         
         if action == "makeMove":
             if "gameId" not in arguments:
-                return self.error(action, "parameter not given: gameId", msgId)
-
-            game = Game.findByHex(arguments["gameId"])
+                return self.error(action, "parameter not given: gameId", msgId, arguments)
+            game = Game.find(arguments["gameId"])
             username = Session.authenticateToken(arguments["token"]) if "token" in arguments else None
             gameKey = arguments["gameKey"] if "gameKey" in arguments else None
 
             if "movePosition" not in arguments:
-                return self.error(action, "parameter not given: movePosition", msgId)
+                return self.error(action, "parameter not given: movePosition", msgId, arguments)
             if not game.authenticate(username, gameKey):
-                return self.error(action, "authentication failed", msgId)
+                return self.error(action, "authentication failed", msgId, arguments)
             if game.gameFinished:
-                return self.error(action, "Game finished, no moves allowed", msgId)
+                return self.error(action, "Game finished, no moves allowed", msgId, arguments)
             try:
                 db.session.add(Move(game.gameId, int(arguments["movePosition"]), username))
                 db.session.commit()
             except Exception as e:
                 app.logger.error(e)
-                return self.error(action, "failed to make move", msgId)
+                return self.error(action, "failed to make move", msgId, arguments)
 
             self.send(action, {"success": True}, msgId)
             gameSubscriptions.broadcastState(game.gameId)
@@ -577,19 +576,27 @@ class WebSocket(WebSocketHandler):
         if action == "help":
             self.send(action, {"makeMove":{"args":["gameId", "movePosition", "?token", "?gameKey"], "desc":"makes a move on a certain game at the given position"}, "viewGame":{"args":["gameId"], "desc":"returns all the moves made on a certain game and its state"}, "ping":{"args":[], "desc":"returns \"pong\", use this to test the connection and its speed"}}, msgId)
             return 
-        return self.error(action, "unknown action. send {\"action\"=\"help\"} to recieve docs", msgId)
+        return self.error(action, "unknown action. send {\"action\"=\"help\"} to recieve docs", msgId, arguments)
 
     def on_close(self):
         gameSubscriptions.remove(self)
         print("Socket closed.")
 
-    def error(self, action, data, msgId):
-        self.send(action, data, msgId, True)
+    def error(self, action, data, msgId, arguments = {}):
+        self.send(action, {"data":data, "args":arguments}, msgId, True)
 
     def send(self, action, data, msgId, error=False):
         message = {"action":action, "success": False, "error":data, "msgId":msgId} if error else {"action":action, "success":True, "data":data, "msgId":msgId}
         self.write_message(json.dumps(message))
-        
+
+@app.after_request
+def apply_caching(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "*"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
+
 
 @app.route('/manifest.json')
 @app.route('/manifest.manifest')
@@ -795,7 +802,7 @@ def makeMove():
 def sendGameInfo():
     response = {"success":True}
     try:
-        response["data"] = Game.findByHex(request.form["gameId"]).getData()
+        response["data"] = Game.find(request.form["gameId"]).getGameInfo()
     except Exception as e:
         app.logger.error(e)
         response["success"] = False
