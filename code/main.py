@@ -8,8 +8,6 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy_serializer import SerializerMixin
 # prettify html before send
 from flask_pretty import Prettify
-# for cronjob (restart server on update)
-from flask_apscheduler import APScheduler
 # we will use os to access enviornment variables stored in the *.env files, time for delays and json for ajax-responses
 import os, time, json, random, sys, numpy as np, re
 import secrets
@@ -31,7 +29,7 @@ solver = TicTacToeSolver("presets/policy_p1","presets/policy_p2").solveState
 from mail import sendMail, EMAIL_TEMPLATES
 
 # initialize flask application with template_folder pointed to public_html (relative to this file)
-app=Flask(__name__)
+app=Flask(__name__, static_url_path='/_flask_static')
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = True
 app.config["SQLALCHEMY_DATABASE_URI"] =  f"postgresql://{os.environ['POSTGRES_USER']}:{os.environ['POSTGRES_PASSWORD']}@db/tictactoe"
 # app.config['SQLALCHEMY_ECHO'] = True
@@ -44,14 +42,6 @@ def render_template(fileName, request, opts = False):
     username = checkToken(request.cookies["token"]) if "token" in request.cookies.keys() else False
     return rt_(fileName, opts=opts, username=username if username else False, version=os.popen("git -C '/' log -n 1 --pretty=format:'%H'").read(), behind=os.popen("git rev-list $(git -C '/' log -n 1 --pretty=format:'%H')..HEAD | grep -c ^").read())
 
-def cronjob(*args):
-    app.logger.info("cronjob executed")
-    if not os.popen("git rev-parse HEAD").read().rstrip() == versionHash:
-        app.logger.info("restarting server for update...")
-        os._exit(1)
-    else:
-        app.logger.info("no update required")
-    return 
 def sslEnabled():
     return "ENABLE_SSL" in os.environ and os.environ["ENABLE_SSL"].upper() == "TRUE"
 
@@ -597,23 +587,18 @@ def apply_caching(response):
     response.headers["Access-Control-Allow-Credentials"] = "true"
     return response
 
-
-@app.route('/manifest.json')
-def webAppManifest():
-    return send_from_directory('/code/front-end/build/', 'asset-manifest.json')
-
-@app.route('/serviceWorker.js')
-def serviceWorker():
-    return send_from_directory('static', 'serviceWorker.js')
-# return appLoader.html on all GET requests
-@app.route('/', defaults={'path': ''}, methods=["GET"])
+# serve built files
+@app.route('/', defaults={'path': 'index.html'}, methods=["GET"])
 @app.route('/<path:path>', methods=["GET"])
 def appLoader(path):
     # redirect to https if requested via http
     if sslEnabled() and request.scheme == "http":
         return redirect(request.url.replace("http://", "https://"))
     else:
-        return send_from_directory('static', path)
+        try:
+            return send_from_directory('/code/front-end/build/', path)
+        except:
+            return send_from_directory('/code/front-end/build/', 'index.html')
 
 # authentication
 @app.route("/getsalt", methods=["POST"])
@@ -836,13 +821,14 @@ def test():
 def wellKnown(filename):
     return send_from_directory("/.well-known", filename)
 
+# robots.txt (see https://www.robotstxt.org/)
 @app.route("/robots.txt")
 def robots():
     return "User-agent: *\nDisallow: *"
 
-
 if __name__ == "__main__":   
-    versionHash = os.popen("git rev-parse HEAD").read().rstrip()
+    # versionHash = os.popen("git rev-parse HEAD").read().rstrip()
+    versionHash = "NONE"
 
     # add sample data for testing
     def addSampleData(dataCount=0):
@@ -908,18 +894,14 @@ if __name__ == "__main__":
 
     print("server reached and initialized, starting web-service")
 
-    print("setting up cronjob")
-    scheduler = APScheduler()
-    scheduler.add_job(id="cronjob", func=cronjob, trigger="interval", seconds=10)
-    scheduler.start()
-    print("cronjob started")
-
     print("ssl enabled:", os.environ["ENABLE_SSL"])
 
     # create a WSGI container from flask
     flaskApp = tornado.wsgi.WSGIContainer(app)
     container = Application([
+        # when a client requests for /ws, call the websokect handler to upgrade the connection to a websocket
         (r'/ws', WebSocket),
+        # handle all other requests with flask
         (r'.*', FallbackHandler, dict(fallback=flaskApp))
     ])
 
