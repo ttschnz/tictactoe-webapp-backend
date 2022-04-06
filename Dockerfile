@@ -1,6 +1,5 @@
 FROM nikolaik/python-nodejs:latest
 
-WORKDIR /code
 RUN pip install setuptools
 # install flask
 RUN pip install flask
@@ -24,13 +23,12 @@ RUN pip install flask_apscheduler
 # numpy for RL-A
 RUN pip install numpy
 
-RUN git clone https://github.com/ttschnz/tictactoe_react.git react_app
+RUN git clone https://github.com/ttschnz/tictactoe_react.git /react_app
 
-WORKDIR /code/react_app
+WORKDIR /react_app
 # install dependencies for frontend
 RUN yarn
 # create a build for the react app
 RUN yarn build
-
-WORKDIR /code
-CMD python ./main.py
+WORKDIR /
+CMD python /code/main.py
