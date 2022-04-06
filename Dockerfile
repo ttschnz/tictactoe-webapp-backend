@@ -23,4 +23,5 @@ RUN pip install flask_apscheduler
 # numpy for RL-A
 RUN pip install numpy
 
+RUN chmod +x /code/run.sh
 CMD /code/run.sh
