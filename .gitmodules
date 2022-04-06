@@ -1,0 +1,3 @@
+[submodule "code/front-end"]
+	path = code/front-end
+	url = https://github.com/ttschnz/tictactoe_react

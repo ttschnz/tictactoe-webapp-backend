@@ -1,5 +1,5 @@
-git pull
-$tempval = docker compose ps -q
-docker container kill $tempval
+docker-compose rm --all
 Remove-Item -r dbdata/*
-docker compose up -d --build
+git pull
+docker-compose build --no-cache
+docker-compose up -d --force-recreate

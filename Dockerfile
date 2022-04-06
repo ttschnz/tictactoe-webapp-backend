@@ -1,5 +1,6 @@
 FROM nikolaik/python-nodejs:latest
 
+WORKDIR /code
 RUN pip install setuptools
 # install flask
 RUN pip install flask
@@ -22,11 +23,16 @@ RUN pip install flask_apscheduler
 # RUN pip install traceback
 # numpy for RL-A
 RUN pip install numpy
-# emailing
-# RUN pip install smtplib
-# RUN pip install email
 
-# install tsc for compiling ts to js
-RUN npm install -g typescript
+RUN git clone https://github.com/ttschnz/tictactoe_react.git
 
-CMD python /code/main.py
+WORKDIR /code/tictactoe_react
+# list directory and wait 2 seconds
+RUN ls -la && sleep 2
+# install dependencies for frontend
+RUN yarn
+# create a build for the react app
+RUN yarn build
+
+WORKDIR /code
+CMD python ./main.py

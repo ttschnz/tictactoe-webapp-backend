@@ -36,5 +36,5 @@ EMAIL_TEMPLATES = {
     "joinedcompetition": EMailTemplate("joinedcompetition"),
 }
 
-with open("/code/static/styles/_email_style.css", "r") as f:
+with open("/code/email_templates/email_style.css", "r") as f:
     EMAIL_STYLE = f"<style>{f.read()}</style>"

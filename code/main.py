@@ -599,9 +599,8 @@ def apply_caching(response):
 
 
 @app.route('/manifest.json')
-@app.route('/manifest.manifest')
 def webAppManifest():
-    return send_from_directory('static', 'manifest.json')
+    return send_from_directory('/code/front-end/build/', 'asset-manifest.json')
 
 @app.route('/serviceWorker.js')
 def serviceWorker():
@@ -610,10 +609,11 @@ def serviceWorker():
 @app.route('/', defaults={'path': ''}, methods=["GET"])
 @app.route('/<path:path>', methods=["GET"])
 def appLoader(path):
+    # redirect to https if requested via http
     if sslEnabled() and request.scheme == "http":
         return redirect(request.url.replace("http://", "https://"))
     else:
-        return send_from_directory('static', "appLoader.html")
+        return send_from_directory('static', path)
 
 # authentication
 @app.route("/getsalt", methods=["POST"])
@@ -808,7 +808,7 @@ def sendGameInfo():
         response["success"] = False
     return json.dumps(response)
 
-@app.route("/version", methods=["GET", "POST"])
+@app.route("/version", methods=["POST"])
 def getVersion():
     response = {"success":True}
     try:
