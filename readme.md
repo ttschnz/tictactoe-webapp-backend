@@ -19,6 +19,7 @@ In diesem Projekt wird ein Reinforcementlearning-Algorithmus (RL-A) ([wikipedia]
 ## Aufbau
 
 Die Datenbank (PostgreSQL) wird in einem Docker-Container gestartet, im selben virtuellen Netzwerk ebenfalls ein Container mit dem Flask-Server. Dieser dient vor allem als API zu der Datenbank, gibt aber auch statische Dateien zurück, die zum Aufbau der Web-App gebraucht werden.
+Zusätzlich enthält die Umgebung einen smtp-Server, mit dem E-Mails versendet werden. Wichtig ist daher, dass in der `web.env`-Datei die korrekte Domain angegeben ist, damit die E-Mails nicht im Spam-Ordner landen.
 
 Um Dinge zu vereinfachen, werden grundsätzlich alle `GET`-Requests statisch beantwortet und `POST`-Requests an die API weitergeleitet.
 
@@ -39,10 +40,17 @@ Im Ordner `reset` finden Sie skripte, die den Server updaten und zurücksetzen.
 Die einzige Software, die für das Starten dieser Applikation notwendig ist, ist Docker. Selbstverständlich kann die Applikation auch ausserhalb von Docker gestartet werden, was aber mit zusätzlichem Aufwand verbunden ist.
 
 1. [Installieren von Docker (wenn nicht vorhanden)](https://docs.docker.com/engine/install/)
-2. Starte Containers `docker-compose up -d --build` oder `docker compose up -d --build`
-3. logs `docker-compose logs -f`
+2. Klonen des Repositories: `git clone https://github.com/ttschnz/tictactoe_webapp.git --recurse`
+3. Kompieren der `.env` Dateien: `cp web.env.example web.env && cp global.env.example global.env`
+4. Bearbeiten der `.env Dateien`
+5. Starte Containers `docker-compose up -d --build`
+6. Folgen der Logs `docker-compose logs -f`
 
 Im Browser wird unter dem Port :80 eine Webseite angezeigt.
+
+### Updates
+
+`git pull --recurse && docker-compouse up -d --build && docker-compose logs -f`
 
 ### SSL
 
