@@ -24,11 +24,9 @@ RUN pip install flask_apscheduler
 # numpy for RL-A
 RUN pip install numpy
 
-RUN git clone https://github.com/ttschnz/tictactoe_react.git
+RUN git clone https://github.com/ttschnz/tictactoe_react.git react_app
 
-WORKDIR /code/tictactoe_react
-# list directory and wait 2 seconds
-RUN ls -la && sleep 2
+WORKDIR /code/react_app
 # install dependencies for frontend
 RUN yarn
 # create a build for the react app
