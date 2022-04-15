@@ -1,4 +1,4 @@
-docker-compose rm --all
+docker-compose rm
 Remove-Item -r dbdata/*
 git pull
 docker-compose build --no-cache
