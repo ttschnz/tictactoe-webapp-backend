@@ -596,9 +596,9 @@ def appLoader(path):
         return redirect(request.url.replace("http://", "https://"))
     else:
         try:
-            return send_from_directory('/code/front-end/build/', path)
+            return send_from_directory('/build/', path)
         except:
-            return send_from_directory('/code/front-end/build/', 'index.html')
+            return send_from_directory('/build/', 'index.html')
 
 # authentication
 @app.route("/getsalt", methods=["POST"])
