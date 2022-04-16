@@ -1,9 +1,10 @@
-# install dependencies
-yarn --cwd /code/front-end --network-timeout 100000
-# if skipbuild is not set, make a build
-if [ -z "$SKIPBUILD" ]; then
-  echo "Building front-end. To skip this set SKIPBUILD as env variable (e.g. docker compose run -e SKIPBUILD=TRUE web)"
-  yarn --cwd /code/front-end build
-fi
+# download release from https://github.com/ttschnz/tictactoe_react/releases/latest
+wget https://github.com/ttschnz/tictactoe_react/releases/latest/download/release.zip
+# install unzip
+apt-get install unzip
+# unzip release.zip
+unzip release.zip
+# remove release.zip
+rm release.zip
 # run the server
 python /code/main.py
