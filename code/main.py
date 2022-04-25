@@ -248,9 +248,9 @@ class Game(db.Model, SerializerMixin):
     def getGameState(self):
         return self.ONGOING if self.getWinner() == False else self.FINISHED
 
+    # returns a response json of the game containing the gameId and the gameKey
     def toResponse(self):
         response = {"data":{}}
-        # response["data"]["_gameId"] = self.gameId
         response["data"]["gameId"] = self.idToHexString()
         response["success"]=True
         if not (self.attacker and self.defender):
@@ -496,7 +496,7 @@ class Competition(db.Model, SerializerMixin):
         # check if the data is valid
         self.checkValidity()
 
-    # checks if the data is valid
+    # checks if the data is valid (length of input and so on)
     def checkValidity(self):
         valid = True
         valid = valid and len(self.firstName)>0
@@ -550,6 +550,7 @@ class GameSubscriptionList:
     def remove(self, socket, gameId=False):
         try:
             if gameId:
+                # BUG: the socket is not directly in the array, the elements in the array are [socket, msgId]
                 while socket in self.subscriptions[gameId]:
                     self.subscriptions[gameId].remove(socket)
                 app.logger.info(f"removed socket from list of game #{gameId}")
@@ -560,116 +561,163 @@ class GameSubscriptionList:
             return False
         return True
 
-    # broadcast a new games state to all subscribers
+    # broadcast data to all subscribers
     def broadcast(self, gameId, data):
+        # log
         app.logger.info(f"broadcasting data {data} to game #{gameId}", self.subscriptions[gameId])
+        # for every subscriber
         for (socket, msgId) in self.subscriptions[gameId]:
             try:
+                # send the data
                 socket.send("broadcast", data, msgId)
             except:
                 # socket is probably closed, just ignore
                 pass
+        # log
         app.logger.info(f"broadcasted data to game #{str(gameId)}")
         return
 
+    # broadcasts a games data to all subscribers given a gameId
     def broadcastState(self, gameId):
         try:
+            # get the games data
             data = Game.find(gameId).getGameInfo()
+            # log the data
             app.logger.info(data)
+            # broadcast the data
             self.broadcast(gameId, data)
         except Exception as e:
+            # log the error
             app.logger.error(e)
             app.logger.error(f"failed to broadcast game {gameId}")
         return
 
+# create a new instance of the game subscription list
 gameSubscriptions = GameSubscriptionList()
 
+# extend the WebSocketHandler class to add the gameSubscriptions list
 class WebSocket(WebSocketHandler):
     # allow all origins
     def check_origin(self, origin):
         return True
+ 
+    # on open log the connection
     def open(self):
         print("Socket opened.")
 
+    # when a message is received, act accordingly
     def on_message(self, data):
         try:
+            # decode the json
             message = data if type(data) == "dict" else json.loads(data)
+            # get the action from the message
             action = message["action"] if "action" in message else None
+            # get the arguments from the message
             arguments = message["args"] if "args" in message else {}
+            # get the message id from the message
             msgId = message["msgId"] if "msgId" in message else None
         except:
             return self.error(None,["unparseable data",data], msgId)
 
+        # return pong on ping
         if action == "ping":
             return self.send(action, "pong", msgId)
 
+        # subscribe to a game
         if action == "subscribeGame":
+            # verify that gameId is in arguments
             if "gameId" not in arguments:
                 return self.error(action, "parameter not given: gameId", msgId, arguments)
-
+            # try to subscribe to the game, respond with an error if it fails
             if not gameSubscriptions.add(arguments["gameId"], msgId, self):
                 return self.error(action, "failed to subscribe to game", msgId, arguments)
-
+            # respond with success
             return self.send(action, {"gameId":arguments["gameId"]}, msgId)
         
+        # unsubscribe from a game
         if action == "unsubscribeGame":
+            # verify that gameId is in arguments
             if "gameId" not in arguments:
                 return self.error(action, "parameter not given: gameId", msgId, arguments)
-
+            # try to unsubscribe from the game, respond with an error if it fails
             if not gameSubscriptions.remove(self, arguments["gameId"]):
                 return self.error(action, "failed to unsubscribe from game", msgId, arguments)
+            # respond with success
+            return self.send(action, {"gameId":arguments["gameId"]}, msgId) 
 
-            return self.send(action, {"gameId":arguments["gameId"]}, msgId)
-
+        # view a games data
         if action == "viewGame":
+            # verify that gameId is in arguments
             if "gameId" not in arguments:
                 return self.error(action, "parameter not given: gameId", msgId, arguments)
+            # find the game
             game = Game.find(arguments["gameId"])
+            # get the games data
             data = game.getGameInfo()
+            # send the data
             return self.send(action, data, msgId)
         
+        # make a move
         if action == "makeMove":
+            # verify that gameId is in arguments
             if "gameId" not in arguments:
                 return self.error(action, "parameter not given: gameId", msgId, arguments)
+            # get the game
             game = Game.find(arguments["gameId"])
+            # get the username
             username = Session.authenticateToken(arguments["token"]) if "token" in arguments else None
+            # get the gameKey
             gameKey = arguments["gameKey"] if "gameKey" in arguments else None
-
+            # verify that a position is given
             if "movePosition" not in arguments:
                 return self.error(action, "parameter not given: movePosition", msgId, arguments)
+            # authenticate the user
             if not game.authenticate(username, gameKey):
                 return self.error(action, "authentication failed", msgId, arguments)
+            # verify that the game is not over
             if game.gameFinished:
                 return self.error(action, "Game finished, no moves allowed", msgId, arguments)
             try:
+                # make the move
                 db.session.add(Move(game.gameId, int(arguments["movePosition"]), username))
+                # commit the move
                 db.session.commit()
             except Exception as e:
                 app.logger.error(e)
                 return self.error(action, "failed to make move", msgId, arguments)
-
+            # respond with success
             self.send(action, {"success": True}, msgId)
+            # broadcast the new game data
             gameSubscriptions.broadcastState(game.gameId)
             # re-calculate games state after commit of move
             game.determineState()
+            # ask the bot to make a move
             makeBotMove(game.gameId)
             return 
+        
+        # get a list of all commands
         if action == "help":
             self.send(action, {"makeMove":{"args":["gameId", "movePosition", "?token", "?gameKey"], "desc":"makes a move on a certain game at the given position"}, "viewGame":{"args":["gameId"], "desc":"returns all the moves made on a certain game and its state"}, "ping":{"args":[], "desc":"returns \"pong\", use this to test the connection and its speed"}}, msgId)
             return 
+
+        # respond with an error that the action is not recognized
         return self.error(action, "unknown action. send {\"action\"=\"help\"} to recieve docs", msgId, arguments)
 
+    # on close unsubsribe from all subscribed games
     def on_close(self):
         gameSubscriptions.remove(self)
         print("Socket closed.")
 
+    # send an error message to the client
     def error(self, action, data, msgId, arguments = {}):
         self.send(action, {"data":data, "args":arguments}, msgId, True)
 
+    # send a message to the client
     def send(self, action, data, msgId, error=False):
         message = {"action":action, "success": False, "error":data, "msgId":msgId} if error else {"action":action, "success":True, "data":data, "msgId":msgId}
         self.write_message(json.dumps(message))
 
+# set headers for the cors (used for development, but doesn't matter if present in production)
 @app.after_request
 def apply_caching(response):
     response.headers["Access-Control-Allow-Origin"] = "*"
@@ -678,7 +726,7 @@ def apply_caching(response):
     response.headers["Access-Control-Allow-Credentials"] = "true"
     return response
 
-# serve built files
+# serve built files (all files in the build folder)
 @app.route('/', defaults={'path': 'index.html'}, methods=["GET"])
 @app.route('/<path:path>', methods=["GET"])
 def appLoader(path):
@@ -687,22 +735,30 @@ def appLoader(path):
         return redirect(request.url.replace("http://", "https://"))
     else:
         try:
+            # serve the file
             return send_from_directory('/build/', path)
         except:
+            # serve the index.html file if the file doesn't exist
             return send_from_directory('/build/', 'index.html')
 
 # authentication
+
+# returns the salt for a user
 @app.route("/getsalt", methods=["POST"])
 def getsalt():
     # returns salt for keygeneration of demanded user
     response = {"success":True}
     try:
+        # find the user
         user = User.find(request.form["username"]).one()
+        # put the salt in the response
         response["data"] = user.salt
     except:
         response["success"] = False
+    # return the response
     return json.dumps(response)
 
+# returns the token for a user
 @app.route("/login", methods=["POST"])
 def loginSubmission():
     try:
@@ -710,8 +766,10 @@ def loginSubmission():
         response = Session.generateToken(request.form["username"]).toResponse() if User.authorizeRequest(request) else {"success":False}
     except:
         response = {"success": False}
+    # return the response
     return json.dumps(response)
 
+# creates an account
 @app.route("/signup", methods=["POST"])
 def signupSubmission():
     try:
@@ -720,58 +778,78 @@ def signupSubmission():
         # generate a token
         response = Session.generateToken(user.username).toResponse()
         try:
+            # try to send the user a welcome email
             sendMail(user.email, "Thanks for joining us!", EMAIL_TEMPLATES["signupconfirmation"], {"username":user.username, "domain": os.environ["DOMAIN"]})
         except Exception as e:
+            # if the email fails, delete the user
             db.session.delete(user)
+            # re-raise the exception
             raise Exception(e)
     except Exception as e:
         app.logger.error(e)
         response = {"success": False}
+    # return the response
     return json.dumps(response)
 
+# join the competition
 @app.route("/joinCompetition", methods=["POST"])
 def joinCompetition():
     try:
+        # cenerate a competition entry for the user
         competition = Competition.generateFromRequest(request)
+        # send an email to the user confirming the entry
         sendMail(User.find(competition.username).one().email, "Confirmation", EMAIL_TEMPLATES["joinedcompetition"], {"username":competition.username, "domain":os.environ["DOMAIN"]})
         response = {"success":True}
     except Exception as e:
         app.logger.error(e)
         response = {"success": False}
+    # return the response
     return json.dumps(response)
 
-@app.route("/games/<gameId>", methods=["POST"])
-def returnGameInfo(gameId):
-    response = {"success":True}
-    try:
-        game = Game.find(gameId)
-        response["game"] = game.to_dict()
-        response["moves"] = game.getMoves()
-    except Exception as e:
-        response["success"] = False
-        app.logger.error(e)
-    return json.dumps(response)
+# DEPRECATED
+# @app.route("/games/<gameId>", methods=["POST"])
+# def returnGameInfo(gameId):
+#     response = {"success":True}
+#     try:
+#         game = Game.find(gameId)
+#         response["game"] = game.to_dict()
+#         response["moves"] = game.getMoves()
+#     except Exception as e:
+#         response["success"] = False
+#         app.logger.error(e)
+#     return json.dumps(response)
 
+# get a list of all games
 @app.route("/games", methods=["POST"])
 def getGameList():
     response = {"success":True}
+    # get the limit
     LIMIT = os.environ["GAMELIST_LIMIT"]
     try:
+        # set an empty array
         games = []
+        # get the id of the last loaded game from the request. only older games will be loaded
         lastGameId = float(request.form["gameId"] if "gameId" in request.form else "inf")
+        # get the games
         for game in db.session.query(Game).filter(Game.gameId < lastGameId).order_by(Game.gameId.desc()).limit(LIMIT).all():
+            # add the game to the array
             games.append(game.getGameInfo())
+        # return the games
         response["data"]=games
     except Exception as e:
         response["success"]=False
         app.logger.error(e)
+    # return the response
     return json.dumps(response)
+
+# get a list of all USERS
 @app.route("/users", methods=["POST"])
 def getUserList():
     response = {"success": True}
     LIMIT = os.environ["GAMELIST_LIMIT"]
     try:
-        # might translate it to sqlalchemy-stuff later 
+        # TODO: translate it to sqlalchemy-stuff later 
+        # get the users and their stats
         userList = db.session.execute("""SELECT users.username, COALESCE(wincount, 0) AS wincount, COALESCE(defeatcount, 0) AS defeatcount, COALESCE(drawcount, 0) AS drawcount from users
 LEFT JOIN (
     SELECT username, COUNT(games.winner) AS wincount FROM users RIGHT JOIN games ON users.username = games.attacker OR users.username = games.defender WHERE games.winner = users.username AND games."gameFinished" IS TRUE GROUP BY username
@@ -784,21 +862,28 @@ LEFT JOIN(
     ) as e on e.username = users.username
     
 ORDER BY wincount DESC NULLS LAST;""").all()
+        # create an array of users
         userData = [{"username":user.username, "winCount":user.wincount, "defeatCount":user.defeatcount, "drawCount":user.drawcount} for user in userList]
         response["data"] = userData
     except Exception as e:
         response["success"] = False
         app.logger.error(e)
+    # return the response
     return json.dumps(response)
 
+# get all games played by a user
 @app.route("/users/<username>", methods=["POST"])
 def returnUserPage(username):
     response = {"success":True}
+    # get the limit
     LIMIT = os.environ["GAMELIST_LIMIT"]
     try:
+        # find the user
         user = User.find(username).one()
+        # return with 404 if the user was not found
         if not user:
             abort(404)
+        # get the games
         games = []
         lastGameId = float(request.form["gameId"] if "gameId" in request.form else "inf")
         for game in user.getGames(LIMIT, lastGameId):
@@ -807,11 +892,14 @@ def returnUserPage(username):
     except Exception as e:
         response["success"] = False
         app.logger.error(e)
+    # return the response
     return json.dumps(response)
 
+# check if the credentials are correct
 @app.route("/checkCredentials", methods=["POST"])
 def checkCredentials():
     try:
+        # get the username from the token
         username = Session.authenticateRequest(request)
         if(username == None):
             raise Exception("invalid token")
@@ -822,11 +910,14 @@ def checkCredentials():
         response = {"success": False}
         return json.dumps(response)
 
+# start a new game
 @app.route("/startNewGame", methods=["POST"])
 def startNewGame():
     try:
         app.logger.error("starting new game")
+        # create a game from the request
         game = Game.createFromRequest(request)
+        # transform it to a json response
         response = game.toResponse()
         return json.dumps(response)
     except Exception as e:
@@ -834,10 +925,13 @@ def startNewGame():
         response={"success": False}
         return json.dumps(response)
 
+# join a game
 @app.route("/joinGame", methods=["POST"])
 def joinGame():
     try:
+        # join the game
         game = Game.join(request)
+        # transform it to a json response
         response = game.toResponse()
         return json.dumps(response)
     except Exception as e:
@@ -845,63 +939,64 @@ def joinGame():
         response={"success": False}
         return json.dumps(response)
 
+# DEPRECATED: use WebSocket instead
+# make a move
 @app.route("/makeMove", methods=["POST"])
 def makeMove():
-    
     try:
+        # find the game
         game = Game.findByHex(request.form["gameId"])
+        # get the username
         username = Session.authenticateRequest(request)
+        # get the gameKey
         gameKey = request.form["gameKey"] if "gameKey" in request.form else None
-
+        # authenticate the user
         if not game.authenticate(username, gameKey):
             raise ValueError("no entries found")
+        # if the game is finished, no moves can be made
         if game.gameFinished:
             raise ValueError("Game finished, no moves allowed")
+        # add a new move with the data from the request to the database
         db.session.add(Move(game.gameId, int(request.form["movePosition"]), username))
+        # commit the changes
         db.session.commit()
         # re-calculate games state after commit of move
         game.determineState()
-
+        # send an update to all subscribers
         gameSubscriptions.broadcastState(game.gameId)
-
         # if game is not finished and bot is attacker or defender, let RL-A decide on the next move
         makeBotMove(game.gameId)
         response = {"success": True}
-
     except Exception as e:
         # app.logger.error(traceback.format_exc())
         response = {"success": False}
-
     return json.dumps(response)
 
+# view a game
 @app.route("/viewGame", methods=["POST"])
 def sendGameInfo():
     response = {"success":True}
     try:
+        # find the game and get its gameInfo
         response["data"] = Game.find(request.form["gameId"]).getGameInfo()
     except Exception as e:
         app.logger.error(e)
         response["success"] = False
+    # return the response
     return json.dumps(response)
 
+# get the version of the Backend
 @app.route("/version", methods=["POST"])
 def getVersion():
     response = {"success":True}
     try:
+        # get the version from git
         remoteVersion = os.popen("git ls-remote origin -h HEAD").read().rstrip()
+        # return the data and find out if the newest version is the same as the running version
         response["data"]={"versionHash":versionHash, "upToDate":remoteVersion.startswith(versionHash)}
     except Exception as e:
         response["success"] = False
     return json.dumps(response)
-# just for testing stuff
-@app.route("/test", methods=["GET", "POST"])
-def test():
-    app.logger.info(request.form)
-    # board = boardify(request.form["board"])
-    # solution = solver(board, request.form["role"])
-    return json.dumps({"success":True})
-
-    # return secrets.token_hex(256//2)
 
 # for .well-known stuff (e.g. acme-challenges for ssl-certs)
 # 
@@ -916,12 +1011,15 @@ def wellKnown(filename):
 def robots():
     return "User-agent: *\nDisallow: *"
 
+
+# start the server
 if __name__ == "__main__":   
     # versionHash = os.popen("git rev-parse HEAD").read().rstrip()
     versionHash = "NONE"
 
     # add sample data for testing
     def addSampleData(dataCount=0):
+        # make n users
         userList = [f"sampleUser{i}" for i in range(dataCount)]
         # add users
         for username in userList:
@@ -930,11 +1028,12 @@ if __name__ == "__main__":
         
         # add games
         for _ in range(dataCount**2):
+            # make a game with a random user
             game = Game(random.choice(userList))
             db.session.add(game)
             db.session.flush()
             db.session.refresh(game)
-            db.session.commit()  
+            db.session.commit()
             # add moves 
             for i in range(9):
                 print(i,game.attacker if i % 2 == 0 else os.environ["BOT_USERNAME"])
@@ -953,7 +1052,6 @@ if __name__ == "__main__":
             print(e)
             return False
 
-  
     app.debug = True
     
     # wait for database to be reachable before starting flask server
